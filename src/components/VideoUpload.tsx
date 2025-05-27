@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Upload, Play } from 'lucide-react';
+import FileUploadDialog from './FileUploadDialog';
 
 interface VideoUploadProps {
   onVideoSelect: (file: File) => void;
@@ -10,6 +11,7 @@ interface VideoUploadProps {
 const VideoUpload = ({ onVideoSelect }: VideoUploadProps) => {
   const [dragActive, setDragActive] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [showUploadDialog, setShowUploadDialog] = useState(false);
 
   const handleDrag = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -42,6 +44,11 @@ const VideoUpload = ({ onVideoSelect }: VideoUploadProps) => {
       onVideoSelect(file);
     }
   }, [onVideoSelect]);
+
+  const handleDialogFileSelect = (file: File) => {
+    setSelectedFile(file);
+    onVideoSelect(file);
+  };
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -81,11 +88,12 @@ const VideoUpload = ({ onVideoSelect }: VideoUploadProps) => {
               className="hidden"
               id="video-upload"
             />
-            <label htmlFor="video-upload">
-              <Button className="cursor-pointer bg-gradient-to-r from-primary-500 to-accent-500 hover:from-primary-600 hover:to-accent-600 text-white">
-                Choose File
-              </Button>
-            </label>
+            <Button 
+              onClick={() => setShowUploadDialog(true)}
+              className="cursor-pointer bg-gradient-to-r from-primary-500 to-accent-500 hover:from-primary-600 hover:to-accent-600 text-white"
+            >
+              Choose File
+            </Button>
 
             {selectedFile && (
               <div className="bg-slate-50 rounded-lg p-4 border">
@@ -105,6 +113,12 @@ const VideoUpload = ({ onVideoSelect }: VideoUploadProps) => {
           </div>
         </div>
       </Card>
+
+      <FileUploadDialog
+        isOpen={showUploadDialog}
+        onClose={() => setShowUploadDialog(false)}
+        onFileSelect={handleDialogFileSelect}
+      />
     </div>
   );
 };
