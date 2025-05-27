@@ -25,7 +25,7 @@ const Header = ({ currentView, onViewChange }: HeaderProps) => {
                 SceneSpeak
               </h1>
             </div>
-            <span className="text-sm text-muted-foreground">AI Video Understanding</span>
+            <span className="text-sm text-slate-600 font-medium">AI Video Understanding</span>
           </div>
 
           <nav className="flex items-center space-x-2">
