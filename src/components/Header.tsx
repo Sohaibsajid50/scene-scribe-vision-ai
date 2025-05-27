@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Search, History, Upload } from 'lucide-react';
+import { Search, History, User } from 'lucide-react';
 
 interface HeaderProps {
   currentView: 'home' | 'analysis' | 'history';
@@ -30,15 +30,6 @@ const Header = ({ currentView, onViewChange }: HeaderProps) => {
 
           <nav className="flex items-center space-x-2">
             <Button
-              variant={currentView === 'home' ? 'default' : 'ghost'}
-              size="sm"
-              onClick={() => onViewChange('home')}
-              className="flex items-center space-x-2"
-            >
-              <Upload className="w-4 h-4" />
-              <span>Upload</span>
-            </Button>
-            <Button
               variant={currentView === 'history' ? 'default' : 'ghost'}
               size="sm"
               onClick={() => onViewChange('history')}
@@ -46,6 +37,21 @@ const Header = ({ currentView, onViewChange }: HeaderProps) => {
             >
               <History className="w-4 h-4" />
               <span>History</span>
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex items-center space-x-2"
+            >
+              <span>Sign In</span>
+            </Button>
+            <Button
+              variant="default"
+              size="sm"
+              className="flex items-center space-x-2"
+            >
+              <User className="w-4 h-4" />
+              <span>Sign Up</span>
             </Button>
           </nav>
         </div>
