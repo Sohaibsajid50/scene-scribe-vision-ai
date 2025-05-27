@@ -1,5 +1,6 @@
 
 import { useState } from 'react';
+import { Upload, Search, Play } from 'lucide-react';
 import Header from '@/components/Header';
 import VideoUpload from '@/components/VideoUpload';
 import LoadingScreen from '@/components/LoadingScreen';
