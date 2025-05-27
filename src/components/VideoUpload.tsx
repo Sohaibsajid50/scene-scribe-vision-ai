@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -66,10 +65,10 @@ const VideoUpload = ({ onVideoSelect }: VideoUploadProps) => {
             <h3 className="text-xl font-semibold text-slate-800">
               Upload your video
             </h3>
-            <p className="text-muted-foreground">
+            <p className="text-slate-600 font-medium">
               Drag and drop your video file here, or click to browse
             </p>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-slate-500">
               Supports MP4, MOV, AVI, and more • Max size: 500MB
             </p>
           </div>
