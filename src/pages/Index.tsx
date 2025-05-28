@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Upload, Search, Play } from 'lucide-react';
 import Header from '@/components/Header';
@@ -44,6 +43,14 @@ const Index = () => {
       handleBackToHome();
     } else if (view === 'history') {
       setCurrentView('history');
+    } else if (view === 'analysis') {
+      // If there's a current video, go to interaction view
+      if (selectedVideoFile && currentFileId) {
+        setCurrentView('interaction');
+      } else {
+        // Otherwise go to home to upload a video first
+        handleBackToHome();
+      }
     }
   };
 
@@ -53,9 +60,17 @@ const Index = () => {
     // For now, we'll just show a placeholder
   };
 
+  // Map internal view to header view for compatibility
+  const getHeaderView = (): 'home' | 'analysis' | 'history' => {
+    if (currentView === 'processing' || currentView === 'interaction') {
+      return 'analysis';
+    }
+    return currentView === 'history' ? 'history' : 'home';
+  };
+
   return (
     <div className="min-h-screen bg-slate-50">
-      <Header currentView={currentView} onViewChange={handleViewChange} />
+      <Header currentView={getHeaderView()} onViewChange={handleViewChange} />
       
       <main className="container mx-auto px-4 py-8">
         {currentView === 'home' && (

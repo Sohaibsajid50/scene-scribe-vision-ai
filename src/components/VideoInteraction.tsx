@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -27,7 +27,7 @@ const VideoInteraction = ({ fileId, videoFile, onBack }: VideoInteractionProps) 
   const [videoUrl, setVideoUrl] = useState<string>('');
 
   // Create video URL for preview
-  useState(() => {
+  useEffect(() => {
     const url = URL.createObjectURL(videoFile);
     setVideoUrl(url);
     return () => URL.revokeObjectURL(url);

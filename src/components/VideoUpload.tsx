@@ -1,3 +1,4 @@
+
 import { useState, useCallback } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -15,6 +16,19 @@ const VideoUpload = ({ onVideoSelect }: VideoUploadProps) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [showUploadDialog, setShowUploadDialog] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+
+  const uploadFile = async (file: File) => {
+    setIsUploading(true);
+    try {
+      const response = await apiService.uploadVideo(file);
+      toast.success('Video uploaded successfully!');
+      onVideoSelect(file, response.file_id);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Upload failed');
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   const handleDrag = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -38,7 +52,7 @@ const VideoUpload = ({ onVideoSelect }: VideoUploadProps) => {
         uploadFile(file);
       }
     }
-  }, [uploadFile]);
+  }, []);
 
   const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -46,24 +60,11 @@ const VideoUpload = ({ onVideoSelect }: VideoUploadProps) => {
       setSelectedFile(file);
       uploadFile(file);
     }
-  }, [uploadFile]);
+  }, []);
 
   const handleDialogFileSelect = (file: File) => {
     setSelectedFile(file);
     uploadFile(file);
-  };
-
-  const uploadFile = async (file: File) => {
-    setIsUploading(true);
-    try {
-      const response = await apiService.uploadVideo(file);
-      toast.success('Video uploaded successfully!');
-      onVideoSelect(file, response.file_id);
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Upload failed');
-    } finally {
-      setIsUploading(false);
-    }
   };
 
   return (
