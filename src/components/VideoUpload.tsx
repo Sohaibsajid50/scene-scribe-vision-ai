@@ -2,16 +2,19 @@ import { useState, useCallback } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Upload, Play } from 'lucide-react';
+import { apiService } from '@/services/api';
+import { toast } from 'sonner';
 import FileUploadDialog from './FileUploadDialog';
 
 interface VideoUploadProps {
-  onVideoSelect: (file: File) => void;
+  onVideoSelect: (file: File, fileId: string) => void;
 }
 
 const VideoUpload = ({ onVideoSelect }: VideoUploadProps) => {
   const [dragActive, setDragActive] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [showUploadDialog, setShowUploadDialog] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
 
   const handleDrag = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -32,22 +35,35 @@ const VideoUpload = ({ onVideoSelect }: VideoUploadProps) => {
       const file = e.dataTransfer.files[0];
       if (file.type.startsWith('video/')) {
         setSelectedFile(file);
-        onVideoSelect(file);
+        uploadFile(file);
       }
     }
-  }, [onVideoSelect]);
+  }, [uploadFile]);
 
   const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       setSelectedFile(file);
-      onVideoSelect(file);
+      uploadFile(file);
     }
-  }, [onVideoSelect]);
+  }, [uploadFile]);
 
   const handleDialogFileSelect = (file: File) => {
     setSelectedFile(file);
-    onVideoSelect(file);
+    uploadFile(file);
+  };
+
+  const uploadFile = async (file: File) => {
+    setIsUploading(true);
+    try {
+      const response = await apiService.uploadVideo(file);
+      toast.success('Video uploaded successfully!');
+      onVideoSelect(file, response.file_id);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Upload failed');
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   return (
@@ -87,12 +103,14 @@ const VideoUpload = ({ onVideoSelect }: VideoUploadProps) => {
               onChange={handleFileSelect}
               className="hidden"
               id="video-upload"
+              disabled={isUploading}
             />
             <Button 
               onClick={() => setShowUploadDialog(true)}
+              disabled={isUploading}
               className="cursor-pointer bg-gradient-to-r from-primary-500 to-accent-500 hover:from-primary-600 hover:to-accent-600 text-white"
             >
-              Choose File
+              {isUploading ? 'Uploading...' : 'Choose File'}
             </Button>
 
             {selectedFile && (
@@ -105,6 +123,7 @@ const VideoUpload = ({ onVideoSelect }: VideoUploadProps) => {
                     <p className="font-medium text-slate-800">{selectedFile.name}</p>
                     <p className="text-sm text-muted-foreground">
                       {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB
+                      {isUploading && ' - Uploading...'}
                     </p>
                   </div>
                 </div>

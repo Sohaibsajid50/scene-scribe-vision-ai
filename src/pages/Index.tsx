@@ -3,11 +3,11 @@ import { useState } from 'react';
 import { Upload, Search, Play } from 'lucide-react';
 import Header from '@/components/Header';
 import VideoUpload from '@/components/VideoUpload';
-import LoadingScreen from '@/components/LoadingScreen';
-import VideoAnalysis from '@/components/VideoAnalysis';
+import VideoProcessing from '@/components/VideoProcessing';
+import VideoInteraction from '@/components/VideoInteraction';
 import VideoHistory from '@/components/VideoHistory';
 
-type AppView = 'home' | 'loading' | 'analysis' | 'history';
+type AppView = 'home' | 'processing' | 'interaction' | 'history';
 
 interface HistoryVideo {
   id: string;
@@ -21,27 +21,29 @@ interface HistoryVideo {
 const Index = () => {
   const [currentView, setCurrentView] = useState<AppView>('home');
   const [selectedVideoFile, setSelectedVideoFile] = useState<File | null>(null);
+  const [currentFileId, setCurrentFileId] = useState<string | null>(null);
 
-  const handleVideoSelect = (file: File) => {
+  const handleVideoSelect = (file: File, fileId: string) => {
     setSelectedVideoFile(file);
-    setCurrentView('loading');
-    
-    // Simulate AI processing time
-    setTimeout(() => {
-      setCurrentView('analysis');
-    }, 3000);
+    setCurrentFileId(fileId);
+    setCurrentView('processing');
+  };
+
+  const handleProcessingComplete = () => {
+    setCurrentView('interaction');
   };
 
   const handleBackToHome = () => {
     setCurrentView('home');
     setSelectedVideoFile(null);
+    setCurrentFileId(null);
   };
 
   const handleViewChange = (view: 'home' | 'analysis' | 'history') => {
     if (view === 'home') {
       handleBackToHome();
-    } else {
-      setCurrentView(view);
+    } else if (view === 'history') {
+      setCurrentView('history');
     }
   };
 
@@ -50,10 +52,6 @@ const Index = () => {
     // In a real app, you would load the video analysis data
     // For now, we'll just show a placeholder
   };
-
-  if (currentView === 'loading') {
-    return <LoadingScreen />;
-  }
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -115,8 +113,22 @@ const Index = () => {
           </div>
         )}
 
-        {currentView === 'analysis' && selectedVideoFile && (
-          <VideoAnalysis videoFile={selectedVideoFile} onBack={handleBackToHome} />
+        {currentView === 'processing' && selectedVideoFile && currentFileId && (
+          <div className="flex items-center justify-center min-h-[60vh]">
+            <VideoProcessing
+              fileId={currentFileId}
+              fileName={selectedVideoFile.name}
+              onProcessingComplete={handleProcessingComplete}
+            />
+          </div>
+        )}
+
+        {currentView === 'interaction' && selectedVideoFile && currentFileId && (
+          <VideoInteraction
+            fileId={currentFileId}
+            videoFile={selectedVideoFile}
+            onBack={handleBackToHome}
+          />
         )}
 
         {currentView === 'history' && (

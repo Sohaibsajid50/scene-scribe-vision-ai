@@ -1,9 +1,10 @@
-
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Upload, File, X } from 'lucide-react';
+import { apiService } from '@/services/api';
+import { toast } from 'sonner';
 
 interface FileUploadDialogProps {
   isOpen: boolean;
@@ -14,6 +15,7 @@ interface FileUploadDialogProps {
 const FileUploadDialog = ({ isOpen, onClose, onFileSelect }: FileUploadDialogProps) => {
   const [dragActive, setDragActive] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
@@ -49,11 +51,18 @@ const FileUploadDialog = ({ isOpen, onClose, onFileSelect }: FileUploadDialogPro
     setSelectedFiles(prev => prev.filter((_, i) => i !== index));
   };
 
-  const handleUpload = () => {
-    if (selectedFiles.length > 0) {
-      onFileSelect(selectedFiles[0]); // For now, just use the first file
-      onClose();
-      setSelectedFiles([]);
+  const handleUpload = async () => {
+    if (selectedFiles.length > 0 && !isUploading) {
+      setIsUploading(true);
+      try {
+        onFileSelect(selectedFiles[0]); // Pass the file to parent for upload
+        onClose();
+        setSelectedFiles([]);
+      } catch (error) {
+        toast.error('Upload failed');
+      } finally {
+        setIsUploading(false);
+      }
     }
   };
 
@@ -152,15 +161,15 @@ const FileUploadDialog = ({ isOpen, onClose, onFileSelect }: FileUploadDialogPro
 
           {/* Action Buttons */}
           <div className="flex justify-end space-x-3 pt-4 border-t">
-            <Button variant="outline" onClick={handleClose}>
+            <Button variant="outline" onClick={handleClose} disabled={isUploading}>
               Cancel
             </Button>
             <Button 
               onClick={handleUpload}
-              disabled={selectedFiles.length === 0}
+              disabled={selectedFiles.length === 0 || isUploading}
               className="bg-gradient-to-r from-primary-500 to-accent-500 hover:from-primary-600 hover:to-accent-600 text-white"
             >
-              Upload {selectedFiles.length > 0 && `(${selectedFiles.length})`}
+              {isUploading ? 'Uploading...' : `Upload ${selectedFiles.length > 0 ? `(${selectedFiles.length})` : ''}`}
             </Button>
           </div>
         </div>
