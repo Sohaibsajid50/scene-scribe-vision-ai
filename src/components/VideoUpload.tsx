@@ -19,6 +19,7 @@ const VideoUpload = ({ onVideoSelect }: VideoUploadProps) => {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadSuccess, setUploadSuccess] = useState(false);
+  const [isHovering, setIsHovering] = useState(false);
 
   const uploadFile = async (file: File) => {
     setIsUploading(true);
@@ -109,23 +110,31 @@ const VideoUpload = ({ onVideoSelect }: VideoUploadProps) => {
             ? 'border-primary-500 bg-primary-50' 
             : uploadSuccess
             ? 'border-green-500 bg-green-50'
+            : isHovering
+            ? 'border-primary-400 shadow-md'
             : 'border-slate-300 hover:border-primary-400'
         }`}
         onDragEnter={handleDrag}
         onDragLeave={handleDrag}
         onDragOver={handleDrag}
         onDrop={handleDrop}
+        onMouseEnter={() => setIsHovering(true)}
+        onMouseLeave={() => setIsHovering(false)}
       >
         <div className="text-center space-y-6">
-          <div className={`mx-auto w-16 h-16 rounded-full flex items-center justify-center animate-float ${
-            uploadSuccess 
-              ? 'bg-green-500' 
-              : 'bg-gradient-to-br from-primary-500 to-accent-500'
-          }`}>
+          <div 
+            className={`mx-auto w-16 h-16 rounded-full flex items-center justify-center ${
+              isHovering && !uploadSuccess ? 'animate-bounce' : 'animate-float'
+            } ${
+              uploadSuccess 
+                ? 'bg-green-500' 
+                : 'bg-gradient-to-br from-primary-500 to-accent-500'
+            }`}
+          >
             {uploadSuccess ? (
               <Check className="w-8 h-8 text-white" />
             ) : (
-              <Upload className="w-8 h-8 text-white" />
+              <Upload className={`w-8 h-8 text-white ${isHovering ? 'scale-110 transition-transform' : ''}`} />
             )}
           </div>
           
@@ -159,7 +168,9 @@ const VideoUpload = ({ onVideoSelect }: VideoUploadProps) => {
               <Button 
                 onClick={triggerFileSelect}
                 disabled={isUploading}
-                className="cursor-pointer bg-gradient-to-r from-primary-500 to-accent-500 hover:from-primary-600 hover:to-accent-600 text-white"
+                className={`cursor-pointer bg-gradient-to-r from-primary-500 to-accent-500 hover:from-primary-600 hover:to-accent-600 text-white ${
+                  isHovering ? 'scale-105 shadow-lg' : ''
+                } transition-all duration-300`}
               >
                 {isUploading ? 'Uploading...' : 'Choose File'}
               </Button>

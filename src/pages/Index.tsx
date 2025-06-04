@@ -1,10 +1,12 @@
+
 import { useState } from 'react';
-import { Upload, Search, Play } from 'lucide-react';
+import { Upload, Youtube, Document, Brain } from 'lucide-react';
 import Header from '@/components/Header';
 import VideoUpload from '@/components/VideoUpload';
 import VideoProcessing from '@/components/VideoProcessing';
 import VideoInteraction from '@/components/VideoInteraction';
 import VideoHistory from '@/components/VideoHistory';
+import { Button } from '@/components/ui/button';
 
 type AppView = 'home' | 'processing' | 'interaction' | 'history';
 
@@ -21,6 +23,7 @@ const Index = () => {
   const [currentView, setCurrentView] = useState<AppView>('home');
   const [selectedVideoFile, setSelectedVideoFile] = useState<File | null>(null);
   const [currentFileId, setCurrentFileId] = useState<string | null>(null);
+  const [youtubeUrl, setYoutubeUrl] = useState<string>('');
 
   const handleVideoSelect = (file: File, fileId: string) => {
     setSelectedVideoFile(file);
@@ -68,6 +71,13 @@ const Index = () => {
     return currentView === 'history' ? 'history' : 'home';
   };
 
+  const handleYoutubeSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    // This would be implemented in a future feature
+    console.log('YouTube URL submitted:', youtubeUrl);
+    // Show a toast or message that this feature is coming soon
+  };
+
   return (
     <div className="min-h-screen bg-slate-50">
       <Header currentView={getHeaderView()} onViewChange={handleViewChange} />
@@ -76,53 +86,85 @@ const Index = () => {
         {currentView === 'home' && (
           <div className="space-y-12">
             {/* Hero Section */}
-            <div className="text-center space-y-6 py-12">
-              <div className="inline-flex items-center space-x-2 bg-gradient-to-r from-primary-100 to-accent-100 px-4 py-2 rounded-full text-sm font-medium text-primary-700">
-                <div className="w-2 h-2 bg-accent-500 rounded-full animate-pulse"></div>
-                <span>Powered by Advanced AI</span>
+            <div className="relative overflow-hidden">
+              {/* Animated background */}
+              <div className="absolute inset-0 opacity-10">
+                <div className="absolute top-0 left-0 w-full h-full">
+                  {/* Animated circles */}
+                  <div className="absolute w-64 h-64 bg-primary-500/30 rounded-full -top-20 -left-20 blur-3xl animate-pulse-slow"></div>
+                  <div className="absolute w-72 h-72 bg-accent-500/30 rounded-full -bottom-20 -right-20 blur-3xl animate-pulse-slow" style={{ animationDelay: '1s' }}></div>
+                </div>
               </div>
-              
-              <h1 className="text-4xl md:text-6xl font-bold text-slate-800 leading-tight">
-                Understand your videos
-                <br />
-                <span className="bg-gradient-to-r from-primary-500 to-accent-500 bg-clip-text text-transparent">
-                  with AI precision
-                </span>
-              </h1>
-              
-              <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-                Upload any video and get detailed, frame-by-frame insights about what's happening. 
-                Perfect for content analysis, accessibility, and understanding.
-              </p>
+
+              <div className="text-center space-y-6 py-16 relative">
+                <div className="inline-flex items-center space-x-2 bg-gradient-to-r from-primary-100 to-accent-100 px-4 py-2 rounded-full text-sm font-medium text-primary-700">
+                  <div className="w-2 h-2 bg-accent-500 rounded-full animate-pulse"></div>
+                  <span>Powered by Advanced AI</span>
+                </div>
+                
+                <h1 className="text-4xl md:text-6xl font-bold text-slate-800 leading-tight">
+                  AI-Powered <span className="bg-gradient-to-r from-primary-500 to-accent-500 bg-clip-text text-transparent">Video Understanding</span>
+                </h1>
+                
+                <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+                  Upload a video or paste a YouTube link to get instant scene insights, summaries, and more.
+                </p>
+              </div>
             </div>
 
             {/* Upload Section */}
             <VideoUpload onVideoSelect={handleVideoSelect} />
 
+            {/* YouTube URL Input */}
+            <div className="max-w-md mx-auto">
+              <form onSubmit={handleYoutubeSubmit} className="flex items-center space-x-2">
+                <div className="relative flex-1">
+                  <input
+                    type="text"
+                    placeholder="Paste YouTube URL"
+                    value={youtubeUrl}
+                    onChange={(e) => setYoutubeUrl(e.target.value)}
+                    className="w-full h-12 pl-10 pr-4 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-300 focus:border-primary-300"
+                  />
+                  <Youtube className="absolute left-3 top-3.5 w-5 h-5 text-red-500" />
+                </div>
+                <Button 
+                  type="submit" 
+                  className="h-12 bg-red-500 hover:bg-red-600 text-white"
+                  disabled={!youtubeUrl.trim()}
+                >
+                  Analyze
+                </Button>
+              </form>
+              <p className="text-xs text-center text-muted-foreground mt-2">
+                YouTube analysis coming soon!
+              </p>
+            </div>
+
             {/* Features Grid */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 py-12">
-              <div className="text-center space-y-4">
-                <div className="w-12 h-12 bg-primary-100 rounded-xl mx-auto flex items-center justify-center">
-                  <Upload className="w-6 h-6 text-primary-600" />
+              <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100 transition-all duration-300 hover:-translate-y-1 hover:shadow-md group">
+                <div className="w-12 h-12 bg-red-50 rounded-xl mb-4 flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <Youtube className="w-6 h-6 text-red-500" />
                 </div>
-                <h3 className="text-lg font-semibold">Smart Upload</h3>
-                <p className="text-muted-foreground">Drag, drop, or browse to upload videos up to 500MB</p>
+                <h3 className="text-lg font-semibold mb-2">Analyze YouTube Videos</h3>
+                <p className="text-muted-foreground">Paste any video URL and let AI do the rest.</p>
               </div>
               
-              <div className="text-center space-y-4">
-                <div className="w-12 h-12 bg-accent-100 rounded-xl mx-auto flex items-center justify-center">
-                  <Search className="w-6 h-6 text-accent-600" />
+              <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100 transition-all duration-300 hover:-translate-y-1 hover:shadow-md group">
+                <div className="w-12 h-12 bg-blue-50 rounded-xl mb-4 flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <Document className="w-6 h-6 text-blue-500" />
                 </div>
-                <h3 className="text-lg font-semibold">AI Analysis</h3>
-                <p className="text-muted-foreground">Advanced computer vision understands scenes, objects, and actions</p>
+                <h3 className="text-lg font-semibold mb-2">Auto Transcription</h3>
+                <p className="text-muted-foreground">Get high-accuracy text from speech—even without captions.</p>
               </div>
               
-              <div className="text-center space-y-4">
-                <div className="w-12 h-12 bg-primary-100 rounded-xl mx-auto flex items-center justify-center">
-                  <Play className="w-6 h-6 text-primary-600" />
+              <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100 transition-all duration-300 hover:-translate-y-1 hover:shadow-md group">
+                <div className="w-12 h-12 bg-purple-50 rounded-xl mb-4 flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <Brain className="w-6 h-6 text-purple-500" />
                 </div>
-                <h3 className="text-lg font-semibold">Interactive Timeline</h3>
-                <p className="text-muted-foreground">Navigate through insights and jump to specific moments</p>
+                <h3 className="text-lg font-semibold mb-2">Smart Video Insights</h3>
+                <p className="text-muted-foreground">Summaries, objects, actions, scenes — all in one click.</p>
               </div>
             </div>
           </div>
