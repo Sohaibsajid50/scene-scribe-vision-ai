@@ -106,7 +106,7 @@ const Index = () => {
                   AI-Powered <span className="bg-gradient-to-r from-primary-500 to-accent-500 bg-clip-text text-transparent">Video Understanding</span>
                 </h1>
                 
-                <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+                <p className="text-xl text-slate-600 max-w-2xl mx-auto">
                   Upload a video or paste a YouTube link to get instant scene insights, summaries, and more.
                 </p>
               </div>
@@ -124,7 +124,7 @@ const Index = () => {
                     placeholder="Paste YouTube URL"
                     value={youtubeUrl}
                     onChange={(e) => setYoutubeUrl(e.target.value)}
-                    className="w-full h-12 pl-10 pr-4 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-300 focus:border-primary-300"
+                    className="w-full h-12 pl-10 pr-4 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-300 focus:border-primary-300 text-slate-800"
                   />
                   <Youtube className="absolute left-3 top-3.5 w-5 h-5 text-red-500" />
                 </div>
@@ -136,7 +136,7 @@ const Index = () => {
                   Analyze
                 </Button>
               </form>
-              <p className="text-xs text-center text-muted-foreground mt-2">
+              <p className="text-xs text-center text-slate-500 mt-2">
                 YouTube analysis coming soon!
               </p>
             </div>
@@ -147,24 +147,24 @@ const Index = () => {
                 <div className="w-12 h-12 bg-red-50 rounded-xl mb-4 flex items-center justify-center group-hover:scale-110 transition-transform">
                   <Youtube className="w-6 h-6 text-red-500" />
                 </div>
-                <h3 className="text-lg font-semibold mb-2">Analyze YouTube Videos</h3>
-                <p className="text-muted-foreground">Paste any video URL and let AI do the rest.</p>
+                <h3 className="text-lg font-semibold mb-2 text-slate-800">Analyze YouTube Videos</h3>
+                <p className="text-slate-600">Paste any video URL and let AI do the rest.</p>
               </div>
               
               <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100 transition-all duration-300 hover:-translate-y-1 hover:shadow-md group">
                 <div className="w-12 h-12 bg-blue-50 rounded-xl mb-4 flex items-center justify-center group-hover:scale-110 transition-transform">
                   <FileText className="w-6 h-6 text-blue-500" />
                 </div>
-                <h3 className="text-lg font-semibold mb-2">Auto Transcription</h3>
-                <p className="text-muted-foreground">Get high-accuracy text from speech—even without captions.</p>
+                <h3 className="text-lg font-semibold mb-2 text-slate-800">Auto Transcription</h3>
+                <p className="text-slate-600">Get high-accuracy text from speech—even without captions.</p>
               </div>
               
               <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100 transition-all duration-300 hover:-translate-y-1 hover:shadow-md group">
                 <div className="w-12 h-12 bg-purple-50 rounded-xl mb-4 flex items-center justify-center group-hover:scale-110 transition-transform">
                   <Brain className="w-6 h-6 text-purple-500" />
                 </div>
-                <h3 className="text-lg font-semibold mb-2">Smart Video Insights</h3>
-                <p className="text-muted-foreground">Summaries, objects, actions, scenes — all in one click.</p>
+                <h3 className="text-lg font-semibold mb-2 text-slate-800">Smart Video Insights</h3>
+                <p className="text-slate-600">Summaries, objects, actions, scenes — all in one click.</p>
               </div>
             </div>
           </div>
