@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import { Upload, Youtube, Document, Brain } from 'lucide-react';
+import { Upload, Youtube, FileText, Brain } from 'lucide-react';
 import Header from '@/components/Header';
 import VideoUpload from '@/components/VideoUpload';
 import VideoProcessing from '@/components/VideoProcessing';
@@ -153,7 +153,7 @@ const Index = () => {
               
               <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100 transition-all duration-300 hover:-translate-y-1 hover:shadow-md group">
                 <div className="w-12 h-12 bg-blue-50 rounded-xl mb-4 flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <Document className="w-6 h-6 text-blue-500" />
+                  <FileText className="w-6 h-6 text-blue-500" />
                 </div>
                 <h3 className="text-lg font-semibold mb-2">Auto Transcription</h3>
                 <p className="text-muted-foreground">Get high-accuracy text from speech—even without captions.</p>
