@@ -107,9 +107,9 @@ const VideoInteraction = ({ fileId, videoFile, onBack }: VideoInteractionProps) 
   };
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6">
+    <div className="max-w-7xl mx-auto space-y-6 h-screen flex flex-col">
       {/* Fixed Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-shrink-0">
         <div>
           <h1 className="text-3xl font-bold text-slate-800">Video Analysis</h1>
           <p className="text-slate-600">{videoFile.name}</p>
@@ -119,7 +119,7 @@ const VideoInteraction = ({ fileId, videoFile, onBack }: VideoInteractionProps) 
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6" style={{ height: 'calc(100vh - 12rem)' }}>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 flex-1 min-h-0">
         {/* Video Preview - Fixed */}
         <Card className="p-6 flex flex-col">
           <h2 className="text-xl font-semibold mb-4">Video Preview</h2>
@@ -146,69 +146,71 @@ const VideoInteraction = ({ fileId, videoFile, onBack }: VideoInteractionProps) 
         </Card>
 
         {/* Chat Interface - Fixed with Scrollable Messages */}
-        <Card className="p-6 flex flex-col h-full">
+        <Card className="p-6 flex flex-col min-h-0">
           {/* Fixed Header */}
-          <h2 className="text-xl font-semibold mb-4">Ask about your video</h2>
+          <h2 className="text-xl font-semibold mb-4 flex-shrink-0 text-slate-800">Ask about your video</h2>
           
-          {/* Scrollable Messages Container */}
-          <ScrollArea className="flex-1 mb-4">
-            <div className="space-y-4 pr-4">
-              {messages.length === 0 && !isLoading && (
-                <div className="text-center py-8 text-slate-500">
-                  <div className="mb-4">
-                    <div className="w-16 h-16 bg-gradient-to-br from-primary-500 to-accent-500 rounded-full mx-auto flex items-center justify-center mb-4">
-                      <Send className="w-8 h-8 text-white" />
+          {/* Scrollable Messages Container - Fixed height with overflow */}
+          <div className="flex-1 min-h-0 mb-4 overflow-hidden">
+            <div className="h-full overflow-y-auto pr-2" style={{ scrollbarWidth: 'thin' }}>
+              <div className="space-y-4">
+                {messages.length === 0 && !isLoading && (
+                  <div className="text-center py-8 text-slate-500">
+                    <div className="mb-4">
+                      <div className="w-16 h-16 bg-gradient-to-br from-primary-500 to-accent-500 rounded-full mx-auto flex items-center justify-center mb-4">
+                        <Send className="w-8 h-8 text-white" />
+                      </div>
+                      <p className="text-lg font-medium mb-2 text-slate-700">Start a conversation</p>
+                      <p className="text-sm text-slate-500">Ask me anything about your video</p>
                     </div>
-                    <p className="text-lg font-medium mb-2">Start a conversation</p>
-                    <p className="text-sm">Ask me anything about your video</p>
                   </div>
-                </div>
-              )}
-              
-              {/* Messages */}
-              {messages.map((message) => (
-                <div
-                  key={message.id}
-                  className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
-                >
+                )}
+                
+                {/* Messages */}
+                {messages.map((message) => (
                   <div
-                    className={`max-w-[85%] p-4 rounded-2xl shadow-sm ${
-                      message.type === 'user'
-                        ? 'bg-gradient-to-r from-primary-500 to-accent-500 text-white rounded-br-md'
-                        : 'bg-white border border-slate-200 text-slate-800 rounded-bl-md'
-                    }`}
+                    key={message.id}
+                    className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
                   >
-                    <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
-                    <div className={`text-xs mt-2 ${
-                      message.type === 'user' ? 'text-white/70' : 'text-slate-500'
-                    }`}>
-                      {formatTime(message.timestamp)}
+                    <div
+                      className={`max-w-[85%] p-4 rounded-2xl shadow-sm ${
+                        message.type === 'user'
+                          ? 'bg-gradient-to-r from-primary-500 to-accent-500 text-white rounded-br-md'
+                          : 'bg-white border border-slate-200 text-slate-800 rounded-bl-md'
+                      }`}
+                    >
+                      <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
+                      <div className={`text-xs mt-2 ${
+                        message.type === 'user' ? 'text-white/70' : 'text-slate-500'
+                      }`}>
+                        {formatTime(message.timestamp)}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
-              
-              {/* Loading indicator */}
-              {isLoading && (
-                <div className="flex justify-start">
-                  <div className="bg-white border border-slate-200 p-4 rounded-2xl rounded-bl-md shadow-sm flex items-center space-x-3">
-                    <div className="flex space-x-1">
-                      <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce"></div>
-                      <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                      <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                ))}
+                
+                {/* Loading indicator */}
+                {isLoading && (
+                  <div className="flex justify-start">
+                    <div className="bg-white border border-slate-200 p-4 rounded-2xl rounded-bl-md shadow-sm flex items-center space-x-3">
+                      <div className="flex space-x-1">
+                        <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce"></div>
+                        <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                        <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                      </div>
+                      <span className="text-sm text-slate-600">AI is thinking...</span>
                     </div>
-                    <span className="text-sm text-slate-600">AI is thinking...</span>
                   </div>
-                </div>
-              )}
-              
-              <div ref={messagesEndRef} />
+                )}
+                
+                <div ref={messagesEndRef} />
+              </div>
             </div>
-          </ScrollArea>
+          </div>
 
           {/* Fixed Prompt Suggestions */}
           {messages.length === 0 && (
-            <div className="mb-4">
+            <div className="mb-4 flex-shrink-0">
               <p className="text-sm text-slate-600 mb-2">Try asking:</p>
               <div className="flex flex-wrap gap-2">
                 {promptSuggestions.map((suggestion, index) => (
@@ -225,7 +227,7 @@ const VideoInteraction = ({ fileId, videoFile, onBack }: VideoInteractionProps) 
           )}
 
           {/* Fixed Input Form */}
-          <form onSubmit={handleSubmit} className="space-y-3">
+          <form onSubmit={handleSubmit} className="space-y-3 flex-shrink-0">
             <div className="relative">
               <Textarea
                 ref={textareaRef}
@@ -233,7 +235,7 @@ const VideoInteraction = ({ fileId, videoFile, onBack }: VideoInteractionProps) 
                 onChange={(e) => setPrompt(e.target.value)}
                 onKeyPress={handleKeyPress}
                 placeholder="Ask about your video..."
-                className="resize-none pr-12 rounded-xl border-slate-200 focus:border-primary-300 focus:ring-primary-200"
+                className="resize-none pr-12 rounded-xl border-slate-200 focus:border-primary-300 focus:ring-primary-200 text-slate-800"
                 rows={3}
                 disabled={isLoading}
               />

@@ -37,9 +37,9 @@ const AuthModal = ({ isOpen, onClose, initialMode = 'signin' }: AuthModalProps) 
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md bg-white">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-semibold text-center">
+          <DialogTitle className="text-2xl font-semibold text-center text-slate-800">
             {mode === 'signin' ? 'Welcome back' : 'Create your account'}
           </DialogTitle>
         </DialogHeader>
@@ -49,27 +49,27 @@ const AuthModal = ({ isOpen, onClose, initialMode = 'signin' }: AuthModalProps) 
           <div className="space-y-3">
             <Button
               variant="outline"
-              className="w-full h-12 text-sm font-medium border-slate-200 hover:bg-slate-50"
+              className="w-full h-12 text-sm font-medium border-slate-200 hover:bg-slate-50 text-slate-700"
               onClick={() => handleSocialAuth('google')}
             >
               <div className="flex items-center space-x-3">
                 <div className="w-5 h-5 bg-red-500 rounded-full flex items-center justify-center">
                   <span className="text-white text-xs font-bold">G</span>
                 </div>
-                <span>Continue with Google</span>
+                <span className="text-slate-700">Continue with Google</span>
               </div>
             </Button>
 
             <Button
               variant="outline"
-              className="w-full h-12 text-sm font-medium border-slate-200 hover:bg-slate-50"
+              className="w-full h-12 text-sm font-medium border-slate-200 hover:bg-slate-50 text-slate-700"
               onClick={() => handleSocialAuth('apple')}
             >
               <div className="flex items-center space-x-3">
                 <div className="w-5 h-5 bg-black rounded-full flex items-center justify-center">
                   <span className="text-white text-xs font-bold">🍎</span>
                 </div>
-                <span>Continue with Apple</span>
+                <span className="text-slate-700">Continue with Apple</span>
               </div>
             </Button>
           </div>
@@ -95,7 +95,7 @@ const AuthModal = ({ isOpen, onClose, initialMode = 'signin' }: AuthModalProps) 
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="pl-10 h-12 border-slate-200 focus:border-primary-300 focus:ring-primary-200"
+                  className="pl-10 h-12 border-slate-200 focus:border-primary-300 focus:ring-primary-200 text-slate-800 bg-white"
                   placeholder="Enter your email"
                   required
                 />
@@ -113,7 +113,7 @@ const AuthModal = ({ isOpen, onClose, initialMode = 'signin' }: AuthModalProps) 
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="pl-10 pr-10 h-12 border-slate-200 focus:border-primary-300 focus:ring-primary-200"
+                  className="pl-10 pr-10 h-12 border-slate-200 focus:border-primary-300 focus:ring-primary-200 text-slate-800 bg-white"
                   placeholder="Enter your password"
                   required
                 />
