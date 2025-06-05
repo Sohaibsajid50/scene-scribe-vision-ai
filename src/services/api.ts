@@ -87,7 +87,7 @@ class APIService {
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ url, prompt, model: "gemini-2.0-flash" }),
+      body: JSON.stringify(request),
     });
 
     if (!response.ok) {

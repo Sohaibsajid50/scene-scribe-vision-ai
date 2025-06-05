@@ -1,7 +1,7 @@
 import os
 from dotenv import load_dotenv
 from pathlib import Path
-from google.generativeai import types
+from google.genai import types
 
 # # Force load .env from project root
 # env_path = Path(__file__).resolve().parents[1] / ".env"
@@ -69,7 +69,6 @@ def generate_from_file(file_id: str, prompt: str, model: str):
         contents=[file_reference, prompt]
     )
     return response
-
 def generate_from_youtube(youtube_url: str, prompt: str, model: str):
     response = client.models.generate_content(
         model=model,

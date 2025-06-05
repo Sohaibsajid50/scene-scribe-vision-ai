@@ -5,7 +5,7 @@ from urllib.parse import urlparse, parse_qs
 from api.gemini_client import generate_from_youtube
 
 from google import genai
-from google.generativeai import types 
+from google.genai import types
 
 import os
 from dotenv import load_dotenv
@@ -34,7 +34,7 @@ def extract_video_id(url: str) -> str:
     
     raise ValueError("Invalid YouTube URL")
 
-@router.post("/youtube")
+@router.post("/youtube/analyze")
 async def analyze_youtube_video(request: YouTubeGenerateRequest):
     """
     Analyze a YouTube video from its URL using Gemini API..
@@ -45,7 +45,7 @@ async def analyze_youtube_video(request: YouTubeGenerateRequest):
         
         youtube_url = f"https://www.youtube.com/watch?v={video_id}"
 
-        response = await generate_from_youtube(request.youtube_url, request.prompt, request.model)
+        response = generate_from_youtube(request.youtube_url, request.prompt, request.model)
         return {"response": response}
 
         return {

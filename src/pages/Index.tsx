@@ -8,7 +8,6 @@ import VideoProcessing from '@/components/VideoProcessing';
 import VideoInteraction from '@/components/VideoInteraction';
 import VideoHistory from '@/components/VideoHistory';
 import { Button } from '@/components/ui/button';
-import { apiService } from '@/services/api';
 import { toast } from 'sonner';
 
 type AppView = 'home' | 'processing' | 'interaction' | 'history';
