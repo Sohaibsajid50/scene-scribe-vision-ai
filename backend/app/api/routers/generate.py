@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from api.gemini_client import generate_from_file
+from api.gemini_client import generate_from_youtube
 
 router = APIRouter()
 
