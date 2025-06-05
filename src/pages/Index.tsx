@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Upload, Youtube, FileText, Brain } from 'lucide-react';
 import Header from '@/components/Header';
@@ -71,11 +70,20 @@ const Index = () => {
     return currentView === 'history' ? 'history' : 'home';
   };
 
-  const handleYoutubeSubmit = (e: React.FormEvent) => {
+  const handleYoutubeSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // This would be implemented in a future feature
-    console.log('YouTube URL submitted:', youtubeUrl);
-    // Show a toast or message that this feature is coming soon
+    if (!youtubeUrl.trim()) return;
+
+    try {
+      const response = await apiService.analyzeYouTube({
+        youtube_url: youtubeUrl
+      });
+      
+      // Navigate to YouTube analysis page with video ID
+      window.location.href = `/youtube-analysis?videoId=${response.video_id}`;
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'YouTube analysis failed');
+    }
   };
 
   return (

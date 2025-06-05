@@ -1,5 +1,6 @@
+
 from fastapi import FastAPI
-from api.routers import upload, generate
+from api.routers import upload, generate, youtube
 import os
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -15,6 +16,5 @@ app.add_middleware(
 )
 
 app.include_router(upload.router)
-
 app.include_router(generate.router)
-
+app.include_router(youtube.router)

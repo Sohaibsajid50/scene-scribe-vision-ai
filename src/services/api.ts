@@ -21,6 +21,17 @@ interface GenerateResponse {
   timestamp?: number;
 }
 
+interface YouTubeAnalysisRequest {
+  youtube_url: string;
+}
+
+interface YouTubeAnalysisResponse {
+  video_id: string;
+  title: string;
+  summary: string;
+  message: string;
+}
+
 class APIService {
   private baseURL: string;
 
@@ -69,7 +80,23 @@ class APIService {
 
     return response.json();
   }
+
+  async analyzeYouTube(request: YouTubeAnalysisRequest): Promise<YouTubeAnalysisResponse> {
+    const response = await fetch(`${this.baseURL}/youtube`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(request),
+    });
+
+    if (!response.ok) {
+      throw new Error(`YouTube analysis failed: ${response.statusText}`);
+    }
+
+    return response.json();
+  }
 }
 
 export const apiService = new APIService();
-export type { UploadResponse, StatusResponse, GenerateRequest, GenerateResponse };
+export type { UploadResponse, StatusResponse, GenerateRequest, GenerateResponse, YouTubeAnalysisRequest, YouTubeAnalysisResponse };
