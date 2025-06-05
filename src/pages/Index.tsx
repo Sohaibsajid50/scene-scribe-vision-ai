@@ -1,14 +1,13 @@
-
 import { useState } from 'react';
-import { Upload, Youtube, FileText, Brain } from 'lucide-react';
 import { apiService } from '@/services/api';
-import { toast } from '@/components/ui/sonner';
+import { Upload, Youtube, FileText, Brain } from 'lucide-react';
 import Header from '@/components/Header';
 import VideoUpload from '@/components/VideoUpload';
 import VideoProcessing from '@/components/VideoProcessing';
 import VideoInteraction from '@/components/VideoInteraction';
 import VideoHistory from '@/components/VideoHistory';
 import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 
 type AppView = 'home' | 'processing' | 'interaction' | 'history';
 
@@ -21,11 +20,21 @@ interface HistoryVideo {
   insights: number;
 }
 
+interface Message {
+  id: string;
+  type: 'user' | 'ai';
+  content: string;
+  timestamp: number;
+}
+
 const Index = () => {
   const [currentView, setCurrentView] = useState<AppView>('home');
   const [selectedVideoFile, setSelectedVideoFile] = useState<File | null>(null);
   const [currentFileId, setCurrentFileId] = useState<string | null>(null);
   const [youtubeUrl, setYoutubeUrl] = useState<string>('');
+  const [prompt, setPrompt] = useState<string>('');
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [messages, setMessages] = useState<Message[]>([]);
 
   const handleVideoSelect = (file: File, fileId: string) => {
     setSelectedVideoFile(file);
@@ -73,19 +82,53 @@ const Index = () => {
     return currentView === 'history' ? 'history' : 'home';
   };
 
-  const handleYoutubeSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!youtubeUrl.trim()) return;
+  // const handleYoutubeSubmit = async (e: React.FormEvent) => {
+  //   e.preventDefault();
+  //   if (!youtubeUrl.trim()) return;
 
+  //   try {
+  //     const response = await apiService.analyzeYouTube(youtubeUrl, "Analyze this video.");
+  //     console.log("YouTube analysis response:", response);
+  //     // Assuming response contains a file ID to set for interaction
+  //     setCurrentFileId(response.response);
+  //     setCurrentView('interaction');
+  //   } catch (error) {
+  //     console.error("YouTube analysis failed:", error);
+  //     alert("Failed to analyze the YouTube video. Please try again.");
+  //   }
+  // };
+  const handleYoutubeSubmit = async (e: React.FormEvent) => {
+    e?.preventDefault();
+    if (!youtubeUrl.trim() || !prompt.trim() || isLoading) return;
+  
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      type: 'user',
+      content: prompt,
+      timestamp: Date.now(),
+    };
+  
+    setMessages(prev => [...prev, userMessage]);
+    setPrompt('');
+    setIsLoading(true);
+  
     try {
-      const response = await apiService.analyzeYouTube({
-        youtube_url: youtubeUrl
-      });
-      
-      // Navigate to YouTube analysis page with video ID
-      window.location.href = `/youtube-analysis?videoId=${response.video_id}`;
+      const res = await apiService.analyzeYouTube(youtubeUrl, prompt);
+  
+      const aiMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        type: 'ai',
+        content: res.response,
+        timestamp: Date.now(),
+      };
+  
+      setMessages(prev => [...prev, aiMessage]);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'YouTube analysis failed');
+      toast.error(
+        error instanceof Error ? error.message : 'Failed to analyze YouTube video.'
+      );
+    } finally {
+      setIsLoading(false);
     }
   };
 

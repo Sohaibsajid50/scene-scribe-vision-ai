@@ -1,20 +1,21 @@
 import os
 from dotenv import load_dotenv
 from pathlib import Path
+from google.generativeai import types
 
-# Force load .env from project root
-env_path = Path(__file__).resolve().parents[1] / ".env"
-load_dotenv(dotenv_path=env_path)
+# # Force load .env from project root
+# env_path = Path(__file__).resolve().parents[1] / ".env"
+# load_dotenv(dotenv_path=env_path)
 
-print("🔐 API_KEY =", os.getenv("GOOGLE_API_KEY"))
 import time
 from google import genai
 from fastapi import UploadFile
 import tempfile
 
-client = genai.Client(api_key="AIzaSyAMQ0rqJAa3q8cwlNUME_Xm_fZ3xo4K9Jg")
 
-import mimetypes
+load_dotenv()
+
+client = genai.Client(api_key=os.getenv("GOOGLE_API_KEY"))
 
 async def upload_to_gemini(file: UploadFile):
     file_bytes = await file.read()
@@ -22,12 +23,6 @@ async def upload_to_gemini(file: UploadFile):
     with tempfile.NamedTemporaryFile(delete=False, suffix=file.filename) as temp_file:
         temp_file.write(file_bytes)
         temp_file_path = temp_file.name
-
-    # Try to guess the MIME type based on the filename extension
-    guessed_type, _ = mimetypes.guess_type(file.filename)
-
-    if not guessed_type:
-        raise Exception("Unable to guess MIME type. Please use a standard video file like .mp4")
 
     myfile = client.files.upload(file=temp_file_path)
 
@@ -72,5 +67,19 @@ def generate_from_file(file_id: str, prompt: str, model: str):
     response = client.models.generate_content(
         model=model,
         contents=[file_reference, prompt]
+    )
+    return response
+
+def generate_from_youtube(youtube_url: str, prompt: str, model: str):
+    response = client.models.generate_content(
+        model=model,
+        contents=types.Content(
+            parts=[
+                types.Part(
+                    file_data=types.FileData(file_uri=youtube_url),
+                ),
+                types.Part(text=prompt)
+            ]
+        )
     )
     return response
