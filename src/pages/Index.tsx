@@ -1,8 +1,5 @@
 import { useState } from 'react';
-<<<<<<< HEAD
-=======
 import { apiService } from '@/services/api';
->>>>>>> youtube-test
 import { Upload, Youtube, FileText, Brain } from 'lucide-react';
 import Header from '@/components/Header';
 import VideoUpload from '@/components/VideoUpload';
