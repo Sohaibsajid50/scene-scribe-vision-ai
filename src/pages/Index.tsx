@@ -82,21 +82,6 @@ const Index = () => {
     return currentView === 'history' ? 'history' : 'home';
   };
 
-  // const handleYoutubeSubmit = async (e: React.FormEvent) => {
-  //   e.preventDefault();
-  //   if (!youtubeUrl.trim()) return;
-
-  //   try {
-  //     const response = await apiService.analyzeYouTube(youtubeUrl, "Analyze this video.");
-  //     console.log("YouTube analysis response:", response);
-  //     // Assuming response contains a file ID to set for interaction
-  //     setCurrentFileId(response.response);
-  //     setCurrentView('interaction');
-  //   } catch (error) {
-  //     console.error("YouTube analysis failed:", error);
-  //     alert("Failed to analyze the YouTube video. Please try again.");
-  //   }
-  // };
   const handleYoutubeSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!youtubeUrl.trim() || isAnalyzing) return;

@@ -92,7 +92,7 @@ const YouTubeAnalysis = () => {
     setIsLoading(true);
 
     try {
-      // Use the /generate endpoint for follow-up questions
+      // Use the /youtube/analyze endpoint for follow-up questions
       const response = await apiService.analyzeYouTube({
         youtube_url: youtubeUrl,
         prompt: messageText
