@@ -1,10 +1,10 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { ArrowUp, Loader, Send, ArrowLeft } from 'lucide-react';
+import { ArrowUp, Loader, ArrowLeft, AlertCircle } from 'lucide-react';
 import { apiService } from '@/services/api';
 import { toast } from 'sonner';
 import Header from '@/components/Header';
@@ -20,11 +20,13 @@ const YouTubeAnalysis = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { youtubeUrl, initialResponse } = location.state || {};
+  const messagesEndRef = useRef<HTMLDivElement>(null);
   
   const [messages, setMessages] = useState<Message[]>([]);
   const [prompt, setPrompt] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [embedUrl, setEmbedUrl] = useState('');
+  const [videoError, setVideoError] = useState(false);
 
   useEffect(() => {
     if (!youtubeUrl || !initialResponse) {
@@ -36,6 +38,8 @@ const YouTubeAnalysis = () => {
     const videoId = extractVideoId(youtubeUrl);
     if (videoId) {
       setEmbedUrl(`https://www.youtube.com/embed/${videoId}`);
+    } else {
+      setVideoError(true);
     }
 
     // Add initial AI response
@@ -47,6 +51,14 @@ const YouTubeAnalysis = () => {
     };
     setMessages([initialMessage]);
   }, [youtubeUrl, initialResponse, navigate]);
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
 
   const extractVideoId = (url: string): string | null => {
     const patterns = [
@@ -80,6 +92,7 @@ const YouTubeAnalysis = () => {
     setIsLoading(true);
 
     try {
+      // Use the /generate endpoint for follow-up questions
       const response = await apiService.analyzeYouTube({
         youtube_url: youtubeUrl,
         prompt: messageText
@@ -93,7 +106,17 @@ const YouTubeAnalysis = () => {
       };
       setMessages(prev => [...prev, aiMessage]);
     } catch (error) {
-      toast.error('Failed to generate response');
+      console.error('Failed to generate response:', error);
+      toast.error('Failed to generate response. Please try again.');
+      
+      // Add error message to chat
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        type: 'ai',
+        content: 'Sorry, I encountered an error while processing your request. Please try again.',
+        timestamp: Date.now()
+      };
+      setMessages(prev => [...prev, errorMessage]);
     } finally {
       setIsLoading(false);
     }
@@ -120,6 +143,7 @@ const YouTubeAnalysis = () => {
         <div className="container mx-auto px-4 py-8">
           <div className="text-center">
             <h1 className="text-2xl font-bold text-slate-800 mb-4">Video Not Found</h1>
+            <p className="text-slate-600 mb-4">No video data was provided.</p>
             <Button onClick={() => navigate('/')}>
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back to Home
@@ -131,15 +155,15 @@ const YouTubeAnalysis = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-slate-50 flex flex-col">
       <Header currentView="analysis" onViewChange={() => {}} />
       
-      <main className="container mx-auto px-4 py-8">
-        <div className="max-w-7xl mx-auto space-y-6">
+      <main className="flex-1 container mx-auto px-4 py-6">
+        <div className="max-w-7xl mx-auto space-y-4">
           {/* Header */}
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-slate-800">YouTube Analysis</h1>
+              <h1 className="text-2xl font-bold text-slate-800">YouTube Analysis</h1>
               <p className="text-slate-600">AI-powered video insights and chat</p>
             </div>
             <Button variant="outline" onClick={() => navigate('/')}>
@@ -148,77 +172,86 @@ const YouTubeAnalysis = () => {
             </Button>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 min-h-[600px]">
+          {/* Split Layout */}
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 h-[calc(100vh-200px)]">
             {/* Video Player - 60% */}
-            <Card className="lg:col-span-3 p-6">
-              <h2 className="text-xl font-semibold text-slate-800 mb-4">Video Player</h2>
+            <Card className="lg:col-span-3 p-4 flex flex-col">
+              <h2 className="text-lg font-semibold text-slate-800 mb-3">Video Player</h2>
               
-              {embedUrl ? (
-                <div className="aspect-video bg-slate-100 rounded-lg overflow-hidden">
-                  <iframe
-                    src={embedUrl}
-                    title="YouTube video player"
-                    frameBorder="0"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                    className="w-full h-full"
-                  ></iframe>
-                </div>
-              ) : (
-                <div className="aspect-video bg-slate-100 rounded-lg flex items-center justify-center">
-                  <p className="text-slate-500">Unable to load video</p>
-                </div>
-              )}
+              <div className="flex-1 min-h-0">
+                {videoError ? (
+                  <div className="h-full bg-slate-100 rounded-lg flex flex-col items-center justify-center p-6">
+                    <AlertCircle className="w-12 h-12 text-red-500 mb-3" />
+                    <p className="text-slate-700 font-medium mb-2">Unable to load video</p>
+                    <p className="text-slate-500 text-sm text-center">The YouTube URL provided is invalid or the video may be private.</p>
+                  </div>
+                ) : embedUrl ? (
+                  <div className="h-full bg-slate-100 rounded-lg overflow-hidden">
+                    <iframe
+                      src={embedUrl}
+                      title="YouTube video player"
+                      frameBorder="0"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                      className="w-full h-full"
+                      onError={() => setVideoError(true)}
+                    ></iframe>
+                  </div>
+                ) : (
+                  <div className="h-full bg-slate-100 rounded-lg flex items-center justify-center">
+                    <Loader className="w-8 h-8 text-slate-400 animate-spin" />
+                  </div>
+                )}
+              </div>
             </Card>
 
             {/* Chat Interface - 40% */}
-            <Card className="lg:col-span-2 p-6 flex flex-col">
-              <h2 className="text-xl font-semibold mb-4 flex-shrink-0 text-slate-800">AI Chat</h2>
+            <Card className="lg:col-span-2 p-4 flex flex-col h-full">
+              <h2 className="text-lg font-semibold mb-3 flex-shrink-0 text-slate-800">AI Chat</h2>
               
-              {/* Messages */}
-              <div className="flex-1 min-h-0 mb-4 overflow-hidden">
-                <div className="h-full overflow-y-auto pr-2">
-                  <div className="space-y-4">
-                    {messages.map((message) => (
+              {/* Messages - Scrollable */}
+              <div className="flex-1 min-h-0 mb-3 overflow-hidden">
+                <div className="h-full overflow-y-auto pr-2 space-y-3">
+                  {messages.map((message) => (
+                    <div
+                      key={message.id}
+                      className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
+                    >
                       <div
-                        key={message.id}
-                        className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
+                        className={`max-w-[85%] p-3 rounded-lg shadow-sm ${
+                          message.type === 'user'
+                            ? 'bg-gradient-to-r from-primary-500 to-accent-500 text-white rounded-br-md'
+                            : 'bg-white border border-slate-200 text-slate-800 rounded-bl-md'
+                        }`}
                       >
-                        <div
-                          className={`max-w-[85%] p-3 rounded-lg shadow-sm ${
-                            message.type === 'user'
-                              ? 'bg-gradient-to-r from-primary-500 to-accent-500 text-white rounded-br-md'
-                              : 'bg-white border border-slate-200 text-slate-800 rounded-bl-md'
-                          }`}
-                        >
-                          <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
-                          <div className={`text-xs mt-2 ${
-                            message.type === 'user' ? 'text-white/70' : 'text-slate-500'
-                          }`}>
-                            {formatTime(message.timestamp)}
-                          </div>
+                        <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
+                        <div className={`text-xs mt-2 ${
+                          message.type === 'user' ? 'text-white/70' : 'text-slate-500'
+                        }`}>
+                          {formatTime(message.timestamp)}
                         </div>
                       </div>
-                    ))}
-                    
-                    {isLoading && (
-                      <div className="flex justify-start">
-                        <div className="bg-white border border-slate-200 p-3 rounded-lg rounded-bl-md shadow-sm flex items-center space-x-2">
-                          <div className="flex space-x-1">
-                            <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce"></div>
-                            <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                            <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                          </div>
-                          <span className="text-sm text-slate-600">AI is thinking...</span>
+                    </div>
+                  ))}
+                  
+                  {isLoading && (
+                    <div className="flex justify-start">
+                      <div className="bg-white border border-slate-200 p-3 rounded-lg rounded-bl-md shadow-sm flex items-center space-x-2">
+                        <div className="flex space-x-1">
+                          <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce"></div>
+                          <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                          <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
                         </div>
+                        <span className="text-sm text-slate-600">AI is thinking...</span>
                       </div>
-                    )}
-                  </div>
+                    </div>
+                  )}
+                  <div ref={messagesEndRef} />
                 </div>
               </div>
 
-              {/* Input Form */}
-              <form onSubmit={handleSubmit} className="space-y-3 flex-shrink-0">
+              {/* Input Form - Fixed at bottom */}
+              <form onSubmit={handleSubmit} className="space-y-2 flex-shrink-0">
                 <div className="relative">
                   <Textarea
                     value={prompt}
