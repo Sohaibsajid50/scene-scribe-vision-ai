@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -16,41 +16,52 @@ interface Message {
   timestamp: number;
 }
 
-interface YouTubeAnalysisData {
-  video_id: string;
-  title: string;
-  summary: string;
-  embed_url: string;
-}
-
 const YouTubeAnalysis = () => {
-  const [searchParams] = useSearchParams();
+  const location = useLocation();
   const navigate = useNavigate();
-  const videoId = searchParams.get('videoId');
+  const { youtubeUrl, initialResponse } = location.state || {};
   
-  const [analysisData, setAnalysisData] = useState<YouTubeAnalysisData | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [prompt, setPrompt] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [embedUrl, setEmbedUrl] = useState('');
 
   useEffect(() => {
-    if (!videoId) {
+    if (!youtubeUrl || !initialResponse) {
       navigate('/');
       return;
     }
 
-    // Simulate loading analysis data
-    setTimeout(() => {
-      setAnalysisData({
-        video_id: videoId,
-        title: 'YouTube Video Analysis',
-        summary: 'This is a placeholder summary of the YouTube video. The AI has analyzed the content and identified key themes, topics, and insights from the video.',
-        embed_url: `https://www.youtube.com/embed/${videoId}`
-      });
-      setIsInitialLoading(false);
-    }, 2000);
-  }, [videoId, navigate]);
+    // Extract video ID and create embed URL
+    const videoId = extractVideoId(youtubeUrl);
+    if (videoId) {
+      setEmbedUrl(`https://www.youtube.com/embed/${videoId}`);
+    }
+
+    // Add initial AI response
+    const initialMessage: Message = {
+      id: 'initial',
+      type: 'ai',
+      content: initialResponse,
+      timestamp: Date.now()
+    };
+    setMessages([initialMessage]);
+  }, [youtubeUrl, initialResponse, navigate]);
+
+  const extractVideoId = (url: string): string | null => {
+    const patterns = [
+      /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
+      /youtube\.com\/v\/([^&\n?#]+)/,
+    ];
+    
+    for (const pattern of patterns) {
+      const match = url.match(pattern);
+      if (match) {
+        return match[1];
+      }
+    }
+    return null;
+  };
 
   const handleSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault();
@@ -69,19 +80,21 @@ const YouTubeAnalysis = () => {
     setIsLoading(true);
 
     try {
-      // Simulate AI response for YouTube analysis
-      setTimeout(() => {
-        const aiMessage: Message = {
-          id: (Date.now() + 1).toString(),
-          type: 'ai',
-          content: `Based on the YouTube video analysis, here's my response to your question: "${messageText}". This is a simulated response that would contain insights about the video content.`,
-          timestamp: Date.now()
-        };
-        setMessages(prev => [...prev, aiMessage]);
-        setIsLoading(false);
-      }, 1500);
+      const response = await apiService.analyzeYouTube({
+        youtube_url: youtubeUrl,
+        prompt: messageText
+      });
+
+      const aiMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        type: 'ai',
+        content: response.response,
+        timestamp: Date.now()
+      };
+      setMessages(prev => [...prev, aiMessage]);
     } catch (error) {
       toast.error('Failed to generate response');
+    } finally {
       setIsLoading(false);
     }
   };
@@ -100,24 +113,7 @@ const YouTubeAnalysis = () => {
     });
   };
 
-  if (isInitialLoading) {
-    return (
-      <div className="min-h-screen bg-slate-50">
-        <Header currentView="analysis" onViewChange={() => {}} />
-        <div className="container mx-auto px-4 py-8 flex items-center justify-center min-h-[60vh]">
-          <div className="text-center space-y-4">
-            <div className="w-16 h-16 bg-gradient-to-br from-primary-500 to-accent-500 rounded-full mx-auto flex items-center justify-center animate-pulse">
-              <Loader className="w-8 h-8 text-white animate-spin" />
-            </div>
-            <h2 className="text-xl font-semibold text-slate-800">Analyzing YouTube Video</h2>
-            <p className="text-slate-600">Please wait while we process the video content...</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (!analysisData) {
+  if (!youtubeUrl || !initialResponse) {
     return (
       <div className="min-h-screen bg-slate-50">
         <Header currentView="analysis" onViewChange={() => {}} />
@@ -144,7 +140,7 @@ const YouTubeAnalysis = () => {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold text-slate-800">YouTube Analysis</h1>
-              <p className="text-slate-600">{analysisData.title}</p>
+              <p className="text-slate-600">AI-powered video insights and chat</p>
             </div>
             <Button variant="outline" onClick={() => navigate('/')}>
               <ArrowLeft className="w-4 h-4 mr-2" />
@@ -152,55 +148,44 @@ const YouTubeAnalysis = () => {
             </Button>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Video and Summary */}
-            <Card className="p-6 space-y-6">
-              <h2 className="text-xl font-semibold text-slate-800">Video & Summary</h2>
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 min-h-[600px]">
+            {/* Video Player - 60% */}
+            <Card className="lg:col-span-3 p-6">
+              <h2 className="text-xl font-semibold text-slate-800 mb-4">Video Player</h2>
               
-              {/* YouTube Embed */}
-              <div className="aspect-video bg-slate-100 rounded-lg overflow-hidden">
-                <iframe
-                  src={analysisData.embed_url}
-                  title="YouTube video player"
-                  frameBorder="0"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                  className="w-full h-full"
-                ></iframe>
-              </div>
-
-              {/* AI Summary */}
-              <div className="p-4 bg-gradient-to-r from-primary-50 to-accent-50 rounded-lg border border-primary-200">
-                <h3 className="font-semibold text-slate-800 mb-2">AI Summary</h3>
-                <p className="text-slate-700 leading-relaxed">{analysisData.summary}</p>
-              </div>
+              {embedUrl ? (
+                <div className="aspect-video bg-slate-100 rounded-lg overflow-hidden">
+                  <iframe
+                    src={embedUrl}
+                    title="YouTube video player"
+                    frameBorder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    className="w-full h-full"
+                  ></iframe>
+                </div>
+              ) : (
+                <div className="aspect-video bg-slate-100 rounded-lg flex items-center justify-center">
+                  <p className="text-slate-500">Unable to load video</p>
+                </div>
+              )}
             </Card>
 
-            {/* Chat Interface */}
-            <Card className="p-6 flex flex-col min-h-[600px]">
-              <h2 className="text-xl font-semibold mb-4 flex-shrink-0 text-slate-800">Ask about this video</h2>
+            {/* Chat Interface - 40% */}
+            <Card className="lg:col-span-2 p-6 flex flex-col">
+              <h2 className="text-xl font-semibold mb-4 flex-shrink-0 text-slate-800">AI Chat</h2>
               
               {/* Messages */}
               <div className="flex-1 min-h-0 mb-4 overflow-hidden">
                 <div className="h-full overflow-y-auto pr-2">
                   <div className="space-y-4">
-                    {messages.length === 0 && !isLoading && (
-                      <div className="text-center py-8 text-slate-500">
-                        <div className="w-16 h-16 bg-gradient-to-br from-primary-500 to-accent-500 rounded-full mx-auto flex items-center justify-center mb-4">
-                          <Send className="w-8 h-8 text-white" />
-                        </div>
-                        <p className="text-lg font-medium mb-2 text-slate-700">Start asking questions</p>
-                        <p className="text-sm text-slate-500">Ask me anything about this YouTube video</p>
-                      </div>
-                    )}
-                    
                     {messages.map((message) => (
                       <div
                         key={message.id}
                         className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
                       >
                         <div
-                          className={`max-w-[85%] p-4 rounded-2xl shadow-sm ${
+                          className={`max-w-[85%] p-3 rounded-lg shadow-sm ${
                             message.type === 'user'
                               ? 'bg-gradient-to-r from-primary-500 to-accent-500 text-white rounded-br-md'
                               : 'bg-white border border-slate-200 text-slate-800 rounded-bl-md'
@@ -218,7 +203,7 @@ const YouTubeAnalysis = () => {
                     
                     {isLoading && (
                       <div className="flex justify-start">
-                        <div className="bg-white border border-slate-200 p-4 rounded-2xl rounded-bl-md shadow-sm flex items-center space-x-3">
+                        <div className="bg-white border border-slate-200 p-3 rounded-lg rounded-bl-md shadow-sm flex items-center space-x-2">
                           <div className="flex space-x-1">
                             <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce"></div>
                             <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
@@ -239,9 +224,9 @@ const YouTubeAnalysis = () => {
                     value={prompt}
                     onChange={(e) => setPrompt(e.target.value)}
                     onKeyPress={handleKeyPress}
-                    placeholder="Ask about this YouTube video..."
-                    className="resize-none pr-12 rounded-xl border-slate-200 focus:border-primary-300 focus:ring-primary-200 text-slate-800"
-                    rows={3}
+                    placeholder="Ask about this video..."
+                    className="resize-none pr-12 rounded-lg border-slate-200 focus:border-primary-300 focus:ring-primary-200 text-slate-800"
+                    rows={2}
                     disabled={isLoading}
                   />
                   <Button

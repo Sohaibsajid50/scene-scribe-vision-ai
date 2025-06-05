@@ -21,6 +21,17 @@ interface GenerateResponse {
   timestamp?: number;
 }
 
+interface YouTubeAnalysisRequest {
+  youtube_url: string;
+  prompt: string;
+}
+
+interface YouTubeAnalysisResponse {
+  response: string;
+  video_id?: string;
+  message?: string;
+}
+
 class APIService {
   private baseURL: string;
 
@@ -70,8 +81,8 @@ class APIService {
     return response.json();
   }
 
-  async analyzeYouTube(url: string, prompt: string): Promise<{ response: string }> {
-    const response = await fetch(`${this.baseURL}/youtube`, {
+  async analyzeYouTube(request: YouTubeAnalysisRequest): Promise<YouTubeAnalysisResponse> {
+    const response = await fetch(`${this.baseURL}/youtube/analyze`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

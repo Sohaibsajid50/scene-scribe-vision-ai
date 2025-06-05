@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import { apiService } from '@/services/api';
 import { Upload, Youtube, FileText, Brain } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
 import VideoUpload from '@/components/VideoUpload';
 import VideoProcessing from '@/components/VideoProcessing';
 import VideoInteraction from '@/components/VideoInteraction';
 import VideoHistory from '@/components/VideoHistory';
 import { Button } from '@/components/ui/button';
+import { apiService } from '@/services/api';
 import { toast } from 'sonner';
 
 type AppView = 'home' | 'processing' | 'interaction' | 'history';
@@ -28,13 +30,12 @@ interface Message {
 }
 
 const Index = () => {
+  const navigate = useNavigate();
   const [currentView, setCurrentView] = useState<AppView>('home');
   const [selectedVideoFile, setSelectedVideoFile] = useState<File | null>(null);
   const [currentFileId, setCurrentFileId] = useState<string | null>(null);
   const [youtubeUrl, setYoutubeUrl] = useState<string>('');
-  const [prompt, setPrompt] = useState<string>('');
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   const handleVideoSelect = (file: File, fileId: string) => {
     setSelectedVideoFile(file);
@@ -98,37 +99,27 @@ const Index = () => {
   //   }
   // };
   const handleYoutubeSubmit = async (e: React.FormEvent) => {
-    e?.preventDefault();
-    if (!youtubeUrl.trim() || !prompt.trim() || isLoading) return;
-  
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      type: 'user',
-      content: prompt,
-      timestamp: Date.now(),
-    };
-  
-    setMessages(prev => [...prev, userMessage]);
-    setPrompt('');
-    setIsLoading(true);
-  
+    e.preventDefault();
+    if (!youtubeUrl.trim() || isAnalyzing) return;
+
+    setIsAnalyzing(true);
     try {
-      const res = await apiService.analyzeYouTube(youtubeUrl, prompt);
-  
-      const aiMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        type: 'ai',
-        content: res.response,
-        timestamp: Date.now(),
-      };
-  
-      setMessages(prev => [...prev, aiMessage]);
+      const response = await apiService.analyzeYouTube({
+        youtube_url: youtubeUrl,
+        prompt: "Summarize this video in 3 sentences and provide key insights."
+      });
+      
+      // Navigate to analysis page with the URL and initial response
+      navigate('/analyze', { 
+        state: { 
+          youtubeUrl, 
+          initialResponse: response.response 
+        } 
+      });
     } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : 'Failed to analyze YouTube video.'
-      );
+      toast.error(error instanceof Error ? error.message : 'YouTube analysis failed');
     } finally {
-      setIsLoading(false);
+      setIsAnalyzing(false);
     }
   };
 
@@ -185,14 +176,11 @@ const Index = () => {
                 <Button 
                   type="submit" 
                   className="h-12 bg-red-500 hover:bg-red-600 text-white"
-                  disabled={!youtubeUrl.trim()}
+                  disabled={!youtubeUrl.trim() || isAnalyzing}
                 >
-                  Analyze
+                  {isAnalyzing ? 'Analyzing...' : 'Analyze'}
                 </Button>
               </form>
-              <p className="text-xs text-center text-slate-500 mt-2">
-                YouTube analysis coming soon!
-              </p>
             </div>
 
             {/* Features Grid */}
