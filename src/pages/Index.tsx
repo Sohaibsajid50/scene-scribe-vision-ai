@@ -1,8 +1,5 @@
-
 import { useState } from 'react';
 import { Upload, Youtube, FileText, Brain } from 'lucide-react';
-import { apiService } from '@/services/api';
-import { toast } from '@/components/ui/sonner';
 import Header from '@/components/Header';
 import VideoUpload from '@/components/VideoUpload';
 import VideoProcessing from '@/components/VideoProcessing';
