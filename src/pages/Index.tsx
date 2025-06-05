@@ -1,11 +1,14 @@
 import { useState } from 'react';
 import { Upload, Youtube, FileText, Brain } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
 import VideoUpload from '@/components/VideoUpload';
 import VideoProcessing from '@/components/VideoProcessing';
 import VideoInteraction from '@/components/VideoInteraction';
 import VideoHistory from '@/components/VideoHistory';
 import { Button } from '@/components/ui/button';
+import { apiService } from '@/services/api';
+import { toast } from 'sonner';
 
 type AppView = 'home' | 'processing' | 'interaction' | 'history';
 
@@ -19,10 +22,12 @@ interface HistoryVideo {
 }
 
 const Index = () => {
+  const navigate = useNavigate();
   const [currentView, setCurrentView] = useState<AppView>('home');
   const [selectedVideoFile, setSelectedVideoFile] = useState<File | null>(null);
   const [currentFileId, setCurrentFileId] = useState<string | null>(null);
   const [youtubeUrl, setYoutubeUrl] = useState<string>('');
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   const handleVideoSelect = (file: File, fileId: string) => {
     setSelectedVideoFile(file);
@@ -72,17 +77,26 @@ const Index = () => {
 
   const handleYoutubeSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!youtubeUrl.trim()) return;
+    if (!youtubeUrl.trim() || isAnalyzing) return;
 
+    setIsAnalyzing(true);
     try {
       const response = await apiService.analyzeYouTube({
-        youtube_url: youtubeUrl
+        youtube_url: youtubeUrl,
+        prompt: "Summarize this video in 3 sentences and provide key insights."
       });
       
-      // Navigate to YouTube analysis page with video ID
-      window.location.href = `/youtube-analysis?videoId=${response.video_id}`;
+      // Navigate to analysis page with the URL and initial response
+      navigate('/analyze', { 
+        state: { 
+          youtubeUrl, 
+          initialResponse: response.response 
+        } 
+      });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'YouTube analysis failed');
+    } finally {
+      setIsAnalyzing(false);
     }
   };
 
@@ -139,14 +153,11 @@ const Index = () => {
                 <Button 
                   type="submit" 
                   className="h-12 bg-red-500 hover:bg-red-600 text-white"
-                  disabled={!youtubeUrl.trim()}
+                  disabled={!youtubeUrl.trim() || isAnalyzing}
                 >
-                  Analyze
+                  {isAnalyzing ? 'Analyzing...' : 'Analyze'}
                 </Button>
               </form>
-              <p className="text-xs text-center text-slate-500 mt-2">
-                YouTube analysis coming soon!
-              </p>
             </div>
 
             {/* Features Grid */}
