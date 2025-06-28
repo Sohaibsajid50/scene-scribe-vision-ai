@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
@@ -7,7 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { ArrowUp, Loader, ArrowLeft, AlertCircle } from 'lucide-react';
 import { apiService } from '@/services/api';
 import { toast } from 'sonner';
-import Header from '@/components/Header';
+import ModernHeader from '@/components/ModernHeader';
 
 interface Message {
   id: string;
@@ -139,7 +138,7 @@ const YouTubeAnalysis = () => {
   if (!youtubeUrl || !initialResponse) {
     return (
       <div className="min-h-screen bg-slate-50">
-        <Header currentView="analysis" onViewChange={() => {}} />
+        <ModernHeader />
         <div className="container mx-auto px-4 py-8">
           <div className="text-center">
             <h1 className="text-2xl font-bold text-slate-800 mb-4">Video Not Found</h1>
@@ -156,7 +155,7 @@ const YouTubeAnalysis = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
-      <Header currentView="analysis" onViewChange={() => {}} />
+      <ModernHeader />
       
       <main className="flex-1 container mx-auto px-4 py-6">
         <div className="max-w-7xl mx-auto space-y-4">
