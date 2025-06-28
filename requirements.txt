@@ -14,7 +14,7 @@ google-api-core==2.24.2
 google-api-python-client==2.169.0
 google-auth==2.40.1
 google-auth-httplib2==0.2.0
-google-cloud-aiplatform==1.93.1
+google-cloud-aiplatform==1.99.0
 google-cloud-bigquery==3.33.0
 google-cloud-core==2.4.3
 google-cloud-resource-manager==1.14.2
@@ -35,7 +35,7 @@ idna==3.10
 jiter==0.10.0
 numpy==2.2.6
 openai==1.79.0
-packaging==25.0
+packaging
 pandas==2.2.3
 proto-plus==1.26.1
 protobuf==5.29.4
@@ -62,4 +62,7 @@ tzdata==2025.2
 uritemplate==4.1.1
 urllib3==2.4.0
 uvicorn==0.34.2
-websockets==15.0.1
+websockets
+langgraph
+langgraph-supervisor
+openai-agents

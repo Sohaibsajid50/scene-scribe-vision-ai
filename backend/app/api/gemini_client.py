@@ -63,6 +63,7 @@ async def upload_to_gemini(file: UploadFile):
 #     return myfile
 
 def generate_from_file(file_id: str, prompt: str, model: str):
+    "Use this tool to generate from file uding the file id"
     file_reference = client.files.get(name=file_id)
     response = client.models.generate_content(
         model=model,
@@ -70,6 +71,7 @@ def generate_from_file(file_id: str, prompt: str, model: str):
     )
     return response
 def generate_from_youtube(youtube_url: str, prompt: str, model: str):
+    "Use this tool to generate from the youtube url"
     response = client.models.generate_content(
         model=model,
         contents=types.Content(
@@ -81,4 +83,3 @@ def generate_from_youtube(youtube_url: str, prompt: str, model: str):
             ]
         )
     )
-    return response

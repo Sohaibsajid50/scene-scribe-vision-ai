@@ -1,20 +1,15 @@
 
-from fastapi import FastAPI
-from api.routers import upload, generate, youtube
-import os
-from fastapi.middleware.cors import CORSMiddleware
-
-app = FastAPI()
-
-# Add CORS middleware
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["http://localhost:8080"],  # Frontend dev server
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+from agents import (
+    Agent,
+    RunContextWrapper,
+    Runner,
+    TResponseInputItem,
+    function_tool,
+    handoff,
+    GuardrailFunctionOutput,
+    input_guardrail,
 )
-
-app.include_router(upload.router)
-app.include_router(generate.router)
-app.include_router(youtube.router)
+from agents.extensions.handoff_prompt import RECOMMENDED_PROMPT_PREFIX
+from dotenv import load_dotenv
+import os
+load_dotenv()
