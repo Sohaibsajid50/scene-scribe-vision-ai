@@ -1,221 +1,143 @@
-import { useState } from 'react';
-import { apiService } from '@/services/api';
-import { Upload, Youtube, FileText, Brain } from 'lucide-react';
+
+import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Header from '@/components/Header';
-import VideoUpload from '@/components/VideoUpload';
-import VideoProcessing from '@/components/VideoProcessing';
-import VideoInteraction from '@/components/VideoInteraction';
-import VideoHistory from '@/components/VideoHistory';
-import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-
-type AppView = 'home' | 'processing' | 'interaction' | 'history';
-
-interface HistoryVideo {
-  id: string;
-  name: string;
-  thumbnail: string;
-  uploadDate: string;
-  duration: string;
-  insights: number;
-}
-
-interface Message {
-  id: string;
-  type: 'user' | 'ai';
-  content: string;
-  timestamp: number;
-}
+import ModernHeader from '@/components/ModernHeader';
+import ModernHero from '@/components/ModernHero';
+import UnifiedChatInterface from '@/components/UnifiedChatInterface';
+import { unifiedApiService } from '@/services/unifiedApi';
 
 const Index = () => {
   const navigate = useNavigate();
-  const [currentView, setCurrentView] = useState<AppView>('home');
-  const [selectedVideoFile, setSelectedVideoFile] = useState<File | null>(null);
-  const [currentFileId, setCurrentFileId] = useState<string | null>(null);
-  const [youtubeUrl, setYoutubeUrl] = useState<string>('');
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [showChat, setShowChat] = useState(false);
+  const chatRef = useRef<HTMLDivElement>(null);
 
-  const handleVideoSelect = (file: File, fileId: string) => {
-    setSelectedVideoFile(file);
-    setCurrentFileId(fileId);
-    setCurrentView('processing');
+  const handleGetStarted = () => {
+    setShowChat(true);
+    // Smooth scroll to chat interface
+    setTimeout(() => {
+      chatRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, 100);
   };
 
-  const handleProcessingComplete = () => {
-    setCurrentView('interaction');
-  };
-
-  const handleBackToHome = () => {
-    setCurrentView('home');
-    setSelectedVideoFile(null);
-    setCurrentFileId(null);
-  };
-
-  const handleViewChange = (view: 'home' | 'analysis' | 'history') => {
-    if (view === 'home') {
-      handleBackToHome();
-    } else if (view === 'history') {
-      setCurrentView('history');
-    } else if (view === 'analysis') {
-      // If there's a current video, go to interaction view
-      if (selectedVideoFile && currentFileId) {
-        setCurrentView('interaction');
-      } else {
-        // Otherwise go to home to upload a video first
-        handleBackToHome();
-      }
-    }
-  };
-
-  const handleHistoryVideoSelect = (video: HistoryVideo) => {
-    console.log('Selected history video:', video);
-    // In a real app, you would load the video analysis data
-    // For now, we'll just show a placeholder
-  };
-
-  // Map internal view to header view for compatibility
-  const getHeaderView = (): 'home' | 'analysis' | 'history' => {
-    if (currentView === 'processing' || currentView === 'interaction') {
-      return 'analysis';
-    }
-    return currentView === 'history' ? 'history' : 'home';
-  };
-
-  const handleYoutubeSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!youtubeUrl.trim() || isAnalyzing) return;
-
-    setIsAnalyzing(true);
+  const handleChatSubmit = async (data: {
+    type: 'text' | 'video' | 'youtube';
+    content: string;
+    file?: File;
+  }) => {
+    setIsLoading(true);
+    
     try {
-      const response = await apiService.analyzeYouTube({
-        youtube_url: youtubeUrl,
-        prompt: "Summarize this video in 3 sentences and provide key insights."
-      });
+      let response;
       
-      // Navigate to analysis page with the URL and initial response
-      navigate('/analyze', { 
-        state: { 
-          youtubeUrl, 
-          initialResponse: response.response 
-        } 
-      });
+      if (data.type === 'youtube') {
+        // Extract YouTube URL from content
+        const youtubeUrlMatch = data.content.match(
+          /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/
+        );
+        
+        if (youtubeUrlMatch) {
+          const youtubeUrl = data.content.includes('http') 
+            ? data.content.split(' ')[0] 
+            : `https://www.youtube.com/watch?v=${youtubeUrlMatch[1]}`;
+          
+          response = await unifiedApiService.sendMessage({
+            type: 'youtube',
+            youtube_url: youtubeUrl,
+            message: data.content,
+          });
+
+          // Navigate to analysis page with YouTube data
+          navigate('/analyze', {
+            state: {
+              youtubeUrl,
+              initialResponse: response.response,
+            },
+          });
+          return;
+        } else {
+          toast.error('Please provide a valid YouTube URL');
+          return;
+        }
+      } else if (data.type === 'video') {
+        response = await unifiedApiService.sendMessage({
+          type: 'video',
+          file: data.file,
+          message: data.content,
+        });
+        
+        // For video uploads, we could navigate to a processing page
+        toast.success('Video uploaded successfully! Processing...');
+        return;
+      } else {
+        response = await unifiedApiService.sendMessage({
+          type: 'text',
+          message: data.content,
+        });
+        
+        toast.success('Message sent successfully!');
+        return;
+      }
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'YouTube analysis failed');
+      console.error('Chat submission failed:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to process request');
     } finally {
-      setIsAnalyzing(false);
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <Header currentView={getHeaderView()} onViewChange={handleViewChange} />
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50">
+      <ModernHeader />
       
-      <main className="container mx-auto px-4 py-8">
-        {currentView === 'home' && (
-          <div className="space-y-12">
-            {/* Hero Section */}
-            <div className="relative overflow-hidden">
-              {/* Animated background */}
-              <div className="absolute inset-0 opacity-10">
-                <div className="absolute top-0 left-0 w-full h-full">
-                  {/* Animated circles */}
-                  <div className="absolute w-64 h-64 bg-primary-500/30 rounded-full -top-20 -left-20 blur-3xl animate-pulse-slow"></div>
-                  <div className="absolute w-72 h-72 bg-accent-500/30 rounded-full -bottom-20 -right-20 blur-3xl animate-pulse-slow" style={{ animationDelay: '1s' }}></div>
-                </div>
-              </div>
-
-              <div className="text-center space-y-6 py-16 relative">
-                <div className="inline-flex items-center space-x-2 bg-gradient-to-r from-primary-100 to-accent-100 px-4 py-2 rounded-full text-sm font-medium text-primary-700">
-                  <div className="w-2 h-2 bg-accent-500 rounded-full animate-pulse"></div>
-                  <span>Powered by Advanced AI</span>
-                </div>
-                
-                <h1 className="text-4xl md:text-6xl font-bold text-slate-800 leading-tight">
-                  AI-Powered <span className="bg-gradient-to-r from-primary-500 to-accent-500 bg-clip-text text-transparent">Video Understanding</span>
-                </h1>
-                
-                <p className="text-xl text-slate-600 max-w-2xl mx-auto">
-                  Upload a video or paste a YouTube link to get instant scene insights, summaries, and more.
-                </p>
-              </div>
+      <main className="container mx-auto px-4">
+        {/* Hero Section */}
+        <ModernHero onGetStarted={handleGetStarted} />
+        
+        {/* Chat Interface */}
+        {showChat && (
+          <div ref={chatRef} className="py-12">
+            <div className="text-center mb-8">
+              <h2 className="text-3xl font-bold text-slate-800 mb-4">
+                Welcome to SceneSpeak
+              </h2>
+              <p className="text-lg text-slate-600 max-w-2xl mx-auto">
+                Instantly chat with your videos, YouTube links, or just ask a question. 
+                Our AI understands your content and provides intelligent responses.
+              </p>
             </div>
-
-            {/* Upload Section */}
-            <VideoUpload onVideoSelect={handleVideoSelect} />
-
-            {/* YouTube URL Input */}
-            <div className="max-w-md mx-auto">
-              <form onSubmit={handleYoutubeSubmit} className="flex items-center space-x-2">
-                <div className="relative flex-1">
-                  <input
-                    type="text"
-                    placeholder="Paste YouTube URL"
-                    value={youtubeUrl}
-                    onChange={(e) => setYoutubeUrl(e.target.value)}
-                    className="w-full h-12 pl-10 pr-4 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-300 focus:border-primary-300 text-slate-800"
-                  />
-                  <Youtube className="absolute left-3 top-3.5 w-5 h-5 text-red-500" />
-                </div>
-                <Button 
-                  type="submit" 
-                  className="h-12 bg-red-500 hover:bg-red-600 text-white"
-                  disabled={!youtubeUrl.trim() || isAnalyzing}
-                >
-                  {isAnalyzing ? 'Analyzing...' : 'Analyze'}
-                </Button>
-              </form>
-            </div>
-
-            {/* Features Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 py-12">
-              <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100 transition-all duration-300 hover:-translate-y-1 hover:shadow-md group">
-                <div className="w-12 h-12 bg-red-50 rounded-xl mb-4 flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <Youtube className="w-6 h-6 text-red-500" />
-                </div>
-                <h3 className="text-lg font-semibold mb-2 text-slate-800">Analyze YouTube Videos</h3>
-                <p className="text-slate-600">Paste any video URL and let AI do the rest.</p>
-              </div>
-              
-              <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100 transition-all duration-300 hover:-translate-y-1 hover:shadow-md group">
-                <div className="w-12 h-12 bg-blue-50 rounded-xl mb-4 flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <FileText className="w-6 h-6 text-blue-500" />
-                </div>
-                <h3 className="text-lg font-semibold mb-2 text-slate-800">Auto Transcription</h3>
-                <p className="text-slate-600">Get high-accuracy text from speech—even without captions.</p>
-              </div>
-              
-              <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100 transition-all duration-300 hover:-translate-y-1 hover:shadow-md group">
-                <div className="w-12 h-12 bg-purple-50 rounded-xl mb-4 flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <Brain className="w-6 h-6 text-purple-500" />
-                </div>
-                <h3 className="text-lg font-semibold mb-2 text-slate-800">Smart Video Insights</h3>
-                <p className="text-slate-600">Summaries, objects, actions, scenes — all in one click.</p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {currentView === 'processing' && selectedVideoFile && currentFileId && (
-          <div className="flex items-center justify-center min-h-[60vh]">
-            <VideoProcessing
-              fileId={currentFileId}
-              fileName={selectedVideoFile.name}
-              onProcessingComplete={handleProcessingComplete}
+            
+            <UnifiedChatInterface 
+              onSubmit={handleChatSubmit}
+              isLoading={isLoading}
             />
+            
+            {/* Quick Examples */}
+            <div className="mt-12 text-center">
+              <h3 className="text-xl font-semibold text-slate-800 mb-6">Try these examples:</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-4xl mx-auto">
+                <div className="p-4 bg-white rounded-xl border border-slate-200 hover:border-primary-300 transition-colors">
+                  <h4 className="font-medium text-slate-800 mb-2">Upload a Video</h4>
+                  <p className="text-sm text-slate-600">
+                    "Summarize the key points from this presentation"
+                  </p>
+                </div>
+                <div className="p-4 bg-white rounded-xl border border-slate-200 hover:border-primary-300 transition-colors">
+                  <h4 className="font-medium text-slate-800 mb-2">YouTube Analysis</h4>
+                  <p className="text-sm text-slate-600">
+                    "https://youtube.com/watch?v=... What's the main topic?"
+                  </p>
+                </div>
+                <div className="p-4 bg-white rounded-xl border border-slate-200 hover:border-primary-300 transition-colors">
+                  <h4 className="font-medium text-slate-800 mb-2">Ask Questions</h4>
+                  <p className="text-sm text-slate-600">
+                    "How can I improve my video content?"
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
-        )}
-
-        {currentView === 'interaction' && selectedVideoFile && currentFileId && (
-          <VideoInteraction
-            fileId={currentFileId}
-            videoFile={selectedVideoFile}
-            onBack={handleBackToHome}
-          />
-        )}
-
-        {currentView === 'history' && (
-          <VideoHistory onVideoSelect={handleHistoryVideoSelect} />
         )}
       </main>
     </div>
