@@ -29,56 +29,44 @@ const Index = () => {
     setIsLoading(true);
     
     try {
-      let response;
-      
-      if (data.type === 'youtube') {
+      const response = await unifiedApiService.sendMessage({
+        message: data.content,
+        file: data.file,
+      });
+
+      // Determine content type for the analysis page
+      let contentType: 'video' | 'youtube' | 'text' = 'text';
+      let videoUrl: string | undefined;
+      let videoFile: File | undefined;
+
+      if (data.file) {
+        contentType = 'video';
+        videoFile = data.file;
+      } else if (data.content.includes('youtube.com') || data.content.includes('youtu.be')) {
+        contentType = 'youtube';
         // Extract YouTube URL from content
         const youtubeUrlMatch = data.content.match(
-          /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/
+          /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#\s]+)/
         );
-        
         if (youtubeUrlMatch) {
-          const youtubeUrl = data.content.includes('http') 
-            ? data.content.split(' ')[0] 
+          videoUrl = youtubeUrlMatch[0].startsWith('http') 
+            ? youtubeUrlMatch[0] 
             : `https://www.youtube.com/watch?v=${youtubeUrlMatch[1]}`;
-          
-          response = await unifiedApiService.sendMessage({
-            type: 'youtube',
-            youtube_url: youtubeUrl,
-            message: data.content,
-          });
-
-          // Navigate to analysis page with YouTube data
-          navigate('/analyze', {
-            state: {
-              youtubeUrl,
-              initialResponse: response.response,
-            },
-          });
-          return;
-        } else {
-          toast.error('Please provide a valid YouTube URL');
-          return;
         }
-      } else if (data.type === 'video') {
-        response = await unifiedApiService.sendMessage({
-          type: 'video',
-          file: data.file,
-          message: data.content,
-        });
-        
-        // For video uploads, we could navigate to a processing page
-        toast.success('Video uploaded successfully! Processing...');
-        return;
-      } else {
-        response = await unifiedApiService.sendMessage({
-          type: 'text',
-          message: data.content,
-        });
-        
-        toast.success('Message sent successfully!');
-        return;
       }
+
+      // Navigate to unified analysis page
+      navigate('/analysis', {
+        state: {
+          analysisData: {
+            contentType,
+            initialResponse: response.response,
+            videoUrl,
+            videoFile,
+            originalMessage: data.content,
+          },
+        },
+      });
     } catch (error) {
       console.error('Chat submission failed:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to process request');
