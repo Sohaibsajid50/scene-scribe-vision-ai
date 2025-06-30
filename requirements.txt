@@ -34,7 +34,6 @@ httpx==0.28.1
 idna==3.10
 jiter==0.10.0
 numpy==2.2.6
-openai==1.79.0
 packaging==25.0
 pandas==2.2.3
 proto-plus==1.26.1
@@ -63,3 +62,13 @@ uritemplate==4.1.1
 urllib3==2.4.0
 uvicorn==0.34.2
 websockets==15.0.1
+
+# Added for User Auth and DB
+alembic
+psycopg2-binary
+passlib[bcrypt]
+python-jose[cryptography]
+google-auth-oauthlib
+pytube
+redis
+openai-agent

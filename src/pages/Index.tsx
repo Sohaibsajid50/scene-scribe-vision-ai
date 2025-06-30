@@ -63,6 +63,7 @@ const Index = () => {
             initialResponse: response.response,
             videoUrl,
             videoFile,
+            fileId: response.file_id, // Pass the file_id
             originalMessage: data.content,
           },
         },

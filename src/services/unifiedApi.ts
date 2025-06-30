@@ -10,6 +10,14 @@ interface UnifiedChatResponse {
   file_id?: string;
 }
 
+interface StatusResponse {
+  file_id: string;
+  status: 'UPLOADING' | 'PROCESSING' | 'ACTIVE' | 'ERROR';
+  progress?: number;
+  message?: string;
+  response?: string; // The final analysis response when status is ACTIVE
+}
+
 class UnifiedAPIService {
   private baseURL: string;
 
@@ -38,6 +46,16 @@ class UnifiedAPIService {
     return response.json();
   }
 
+  async getStatus(fileId: string): Promise<StatusResponse> {
+    const response = await fetch(`${this.baseURL}/api/status/${fileId}`);
+
+    if (!response.ok) {
+      throw new Error(`Status check failed: ${response.statusText}`);
+    }
+
+    return response.json();
+  }
+
   // Keep existing method for follow-up questions in analysis page
   async continueChat(message: string, context?: any): Promise<UnifiedChatResponse> {
     const response = await fetch(`${this.baseURL}/api/chat`, {
@@ -60,4 +78,4 @@ class UnifiedAPIService {
 }
 
 export const unifiedApiService = new UnifiedAPIService();
-export type { UnifiedChatRequest, UnifiedChatResponse };
+export type { UnifiedChatRequest, UnifiedChatResponse, StatusResponse };
