@@ -5,7 +5,7 @@ from app.api import dependencies
 from app.models import db_models, api_models
 from app.crud import job_crud
 from app.services.history_service import history_service
-from app.agents.orchestration import upload_to_gemini
+from app.agents.adk_agent import upload_to_gemini
 from app.services import background_tasks as bg_tasks
 import uuid
 
