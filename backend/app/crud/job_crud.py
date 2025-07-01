@@ -53,3 +53,14 @@ def update_job_status(db: Session, job_id: uuid.UUID, user_id: int, status: db_m
         db.commit()
         db.refresh(db_job)
     return db_job
+
+def update_job_agent(db: Session, job_id: uuid.UUID, user_id: int, agent_name: str):
+    """
+    Updates the current agent of a job, ensuring it belongs to the correct user.
+    """
+    db_job = db.query(db_models.Job).filter(db_models.Job.id == job_id, db_models.Job.user_id == user_id).first()
+    if db_job:
+        db_job.current_agent = agent_name
+        db.commit()
+        db.refresh(db_job)
+    return db_job

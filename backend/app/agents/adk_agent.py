@@ -10,6 +10,7 @@ from google import genai
 from langgraph_supervisor import create_supervisor
 import vertexai
 from google.generativeai import types
+import google.generativeai as generativeai
 import tempfile
 from fastapi import UploadFile
 import time
@@ -17,7 +18,7 @@ import re
 
 load_dotenv()
 
-genai.configure(api_key=os.getenv("OPENAI_API_KEY"))
+generativeai.configure(api_key=os.getenv("OPENAI_API_KEY"))
 model = ChatOpenAI(model="gpt-4o")
 client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
@@ -32,11 +33,11 @@ async def upload_to_gemini(file: UploadFile):
         temp_file.write(file_bytes)
         temp_file_path = temp_file.name
 
-    myfile = genai.files.upload(file=temp_file_path)
+    myfile = client.files.upload(file=temp_file_path)
 
     # Wait until the file becomes ACTIVE
     while True:
-        status = genai.files.get(name=myfile.name).state
+        status = client.files.get(name=myfile.name).state
         if status == "ACTIVE":
             break
         elif status == "FAILED":
