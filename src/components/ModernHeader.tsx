@@ -1,16 +1,28 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { User, LogIn } from 'lucide-react';
+import { User, LogIn, LogOut } from 'lucide-react';
 import AuthModal from './AuthModal';
+import { useAuth } from '@/context/AuthContext'; // Import useAuth
 
 const ModernHeader = () => {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
+  const { isAuthenticated, userEmail, logout, loading } = useAuth(); // Use AuthContext
 
   const handleAuthClick = (mode: 'signin' | 'signup') => {
     setAuthMode(mode);
     setShowAuthModal(true);
+  };
+
+  const handleLogout = () => {
+    logout();
+    // Optionally, redirect to home or refresh state
+  };
+
+  const handleAuthSuccess = () => {
+    setShowAuthModal(false); // Close modal on success
+    // AuthContext will handle updating isAuthenticated and userEmail
   };
 
   return (
@@ -38,23 +50,42 @@ const ModernHeader = () => {
 
             {/* Auth Buttons */}
             <div className="flex items-center space-x-3">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => handleAuthClick('signin')}
-                className="text-slate-600 hover:text-slate-800"
-              >
-                <LogIn className="w-4 h-4 mr-2" />
-                Sign In
-              </Button>
-              <Button
-                size="sm"
-                onClick={() => handleAuthClick('signup')}
-                className="bg-gradient-to-r from-primary-500 to-accent-500 hover:from-primary-600 hover:to-accent-600 text-white"
-              >
-                <User className="w-4 h-4 mr-2" />
-                Sign Up
-              </Button>
+              {loading ? (
+                <div className="text-sm text-slate-500">Loading...</div>
+              ) : isAuthenticated ? (
+                <div className="flex items-center space-x-3">
+                  <span className="text-slate-700 text-sm font-medium">Welcome, {userEmail}</span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleLogout}
+                    className="text-slate-600 hover:text-slate-800"
+                  >
+                    <LogOut className="w-4 h-4 mr-2" />
+                    Sign Out
+                  </Button>
+                </div>
+              ) : (
+                <>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleAuthClick('signin')}
+                    className="text-slate-600 hover:text-slate-800"
+                  >
+                    <LogIn className="w-4 h-4 mr-2" />
+                    Sign In
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => handleAuthClick('signup')}
+                    className="bg-gradient-to-r from-primary-500 to-accent-500 hover:from-primary-600 hover:to-accent-600 text-white"
+                  >
+                    <User className="w-4 h-4 mr-2" />
+                    Sign Up
+                  </Button>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -64,6 +95,7 @@ const ModernHeader = () => {
         isOpen={showAuthModal}
         onClose={() => setShowAuthModal(false)}
         initialMode={authMode}
+        onAuthSuccess={handleAuthSuccess} // Pass the callback
       />
     </>
   );

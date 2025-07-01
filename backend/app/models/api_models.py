@@ -41,6 +41,9 @@ class UserBase(BaseModel):
 class UserCreate(UserBase):
     password: str
 
+class UserCreateGoogle(UserBase):
+    google_id: str
+
 class UserLogin(UserCreate):
     pass
 
@@ -67,6 +70,9 @@ class ChatRequest(BaseModel):
 class ChatResponse(BaseModel):
     response: str
     conversation_id: uuid.UUID
+
+class GoogleIdTokenRequest(BaseModel):
+    id_token_str: str
 
 # ============================================
 #                  Job Models

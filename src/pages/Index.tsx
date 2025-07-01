@@ -6,16 +6,26 @@ import ModernHeader from '@/components/ModernHeader';
 import ModernHero from '@/components/ModernHero';
 import UnifiedChatInterface from '@/components/UnifiedChatInterface';
 import { unifiedApiService } from '@/services/unifiedApi';
+import { useAuth } from '@/context/AuthContext';
+import AuthModal from '@/components/AuthModal'; // Import AuthModal
 
 const Index = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [showChat, setShowChat] = useState(false);
   const chatRef = useRef<HTMLDivElement>(null);
+  const { isAuthenticated, loading: authLoading } = useAuth();
+  const [showAuthModal, setShowAuthModal] = useState(false);
 
   const handleGetStarted = () => {
+    if (authLoading) return; // Prevent action while auth status is loading
+
+    if (!isAuthenticated) {
+      toast.info("Please sign in to get started.");
+      setShowAuthModal(true);
+      return;
+    }
     setShowChat(true);
-    // Smooth scroll to chat interface
     setTimeout(() => {
       chatRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, 100);
@@ -26,6 +36,12 @@ const Index = () => {
     content: string;
     file?: File;
   }) => {
+    if (!isAuthenticated) {
+      toast.error("You must be signed in to start a conversation.");
+      setShowAuthModal(true);
+      return;
+    }
+
     setIsLoading(true);
     
     try {
@@ -44,7 +60,6 @@ const Index = () => {
         videoFile = data.file;
       } else if (data.content.includes('youtube.com') || data.content.includes('youtu.be')) {
         contentType = 'youtube';
-        // Extract YouTube URL from content
         const youtubeUrlMatch = data.content.match(
           /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#\s]+)/
         );
@@ -55,7 +70,6 @@ const Index = () => {
         }
       }
 
-      // Navigate to unified analysis page
       navigate('/analysis', {
         state: {
           analysisData: {
@@ -65,6 +79,7 @@ const Index = () => {
             videoFile,
             fileId: response.file_id, // Pass the file_id
             originalMessage: data.content,
+            conversationId: response.conversation_id, // Pass the conversation_id
           },
         },
       });
@@ -73,6 +88,17 @@ const Index = () => {
       toast.error(error instanceof Error ? error.message : 'Failed to process request');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleAuthSuccess = () => {
+    setShowAuthModal(false);
+    // If user just signed in, and they were trying to get started, show chat
+    if (!showChat) {
+      setShowChat(true);
+      setTimeout(() => {
+        chatRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
     }
   };
 
@@ -100,6 +126,7 @@ const Index = () => {
             <UnifiedChatInterface 
               onSubmit={handleChatSubmit}
               isLoading={isLoading}
+              disabled={authLoading || !isAuthenticated} // Disable if not authenticated or loading
             />
             
             {/* Quick Examples */}
@@ -129,6 +156,12 @@ const Index = () => {
           </div>
         )}
       </main>
+
+      <AuthModal
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+        onAuthSuccess={handleAuthSuccess}
+      />
     </div>
   );
 };

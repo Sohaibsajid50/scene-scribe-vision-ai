@@ -6,6 +6,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
+import { GoogleLogin } from '@react-oauth/google'; // Import GoogleLogin component
+import { toast } from 'sonner';
+import { useAuth } from '@/context/AuthContext';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -19,20 +22,51 @@ const AuthModal = ({ isOpen, onClose, initialMode = 'signin' }: AuthModalProps) 
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const { login, register, googleLogin: contextGoogleLogin } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    // TODO: Implement authentication logic
-    setTimeout(() => {
+    try {
+      if (mode === 'signup') {
+        await register({ email, password });
+        toast.success('Registration successful! Please sign in.');
+        setMode('signin');
+      } else {
+        await login({ email, password });
+        toast.success('Signed in successfully!');
+        onClose();
+      }
+    } catch (error: any) {
+      toast.error(error.message || 'Authentication failed.');
+    } finally {
       setIsLoading(false);
-      onClose();
-    }, 1000);
+    }
   };
 
-  const handleSocialAuth = (provider: 'google' | 'apple') => {
-    console.log(`Authenticating with ${provider}`);
-    // TODO: Implement social authentication
+  const handleGoogleSuccess = async (tokenResponse: any) => {
+    console.log("Google tokenResponse in handleGoogleSuccess:", tokenResponse);
+    console.log("Google ID Token (credential) in handleGoogleSuccess:", tokenResponse.credential);
+    // tokenResponse.credential contains the ID token
+    if (tokenResponse.credential) {
+      setIsLoading(true);
+      try {
+        await contextGoogleLogin(tokenResponse.credential);
+        toast.success('Signed in with Google successfully!');
+        onClose();
+      } catch (error: any) {
+        toast.error(error.message || 'Google sign-in failed.');
+      } finally {
+        setIsLoading(false);
+      }
+    } else {
+      toast.error('Google sign-in failed: No ID token received.');
+    }
+  };
+
+  const handleGoogleError = () => {
+    console.error('Google login failed.');
+    toast.error('Google sign-in failed. Please try again.');
   };
 
   return (
@@ -47,23 +81,35 @@ const AuthModal = ({ isOpen, onClose, initialMode = 'signin' }: AuthModalProps) 
         <div className="space-y-6 pt-2">
           {/* Social Authentication */}
           <div className="space-y-3">
-            <Button
-              variant="outline"
-              className="w-full h-12 text-sm font-medium border-slate-200 hover:bg-slate-50 text-slate-700"
-              onClick={() => handleSocialAuth('google')}
-            >
-              <div className="flex items-center space-x-3">
-                <div className="w-5 h-5 bg-red-500 rounded-full flex items-center justify-center">
-                  <span className="text-white text-xs font-bold">G</span>
-                </div>
-                <span className="text-slate-700">Continue with Google</span>
-              </div>
-            </Button>
+            <GoogleLogin
+              onSuccess={handleGoogleSuccess}
+              onError={handleGoogleError}
+              useOneTap={false} // Set to true if you want one-tap sign-in
+              render={({ onClick, disabled }) => (
+                <Button
+                  variant="outline"
+                  className="w-full h-12 text-sm font-medium border-slate-200 hover:bg-slate-50 text-slate-700"
+                  onClick={onClick}
+                  disabled={disabled || isLoading}
+                >
+                  <div className="flex items-center space-x-3">
+                    <div className="w-5 h-5 bg-red-500 rounded-full flex items-center justify-center">
+                      <span className="text-white text-xs font-bold">G</span>
+                    </div>
+                    <span className="text-slate-700">Continue with Google</span>
+                  </div>
+                </Button>
+              )}
+            />
 
             <Button
               variant="outline"
               className="w-full h-12 text-sm font-medium border-slate-200 hover:bg-slate-50 text-slate-700"
-              onClick={() => handleSocialAuth('apple')}
+              onClick={() => {
+                console.log(`Authenticating with Apple (not yet implemented)`);
+                toast.info('Apple sign-in is not yet implemented.');
+              }}
+              disabled={isLoading}
             >
               <div className="flex items-center space-x-3">
                 <div className="w-5 h-5 bg-black rounded-full flex items-center justify-center">
@@ -98,6 +144,7 @@ const AuthModal = ({ isOpen, onClose, initialMode = 'signin' }: AuthModalProps) 
                   className="pl-10 h-12 border-slate-200 focus:border-primary-300 focus:ring-primary-200 text-slate-800 bg-white"
                   placeholder="Enter your email"
                   required
+                  disabled={isLoading}
                 />
               </div>
             </div>
@@ -116,11 +163,13 @@ const AuthModal = ({ isOpen, onClose, initialMode = 'signin' }: AuthModalProps) 
                   className="pl-10 pr-10 h-12 border-slate-200 focus:border-primary-300 focus:ring-primary-200 text-slate-800 bg-white"
                   placeholder="Enter your password"
                   required
+                  disabled={isLoading}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  disabled={isLoading}
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -143,6 +192,7 @@ const AuthModal = ({ isOpen, onClose, initialMode = 'signin' }: AuthModalProps) 
               <button
                 onClick={() => setMode(mode === 'signin' ? 'signup' : 'signin')}
                 className="ml-1 text-primary-600 hover:text-primary-700 font-medium"
+                disabled={isLoading}
               >
                 {mode === 'signin' ? 'Sign up' : 'Sign in'}
               </button>

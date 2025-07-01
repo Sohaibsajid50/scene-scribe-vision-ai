@@ -5,24 +5,24 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ArrowUp, Loader, ArrowLeft, AlertCircle, Play, Bot } from 'lucide-react';
-import { unifiedApiService, StatusResponse } from '@/services/unifiedApi';
+import { unifiedApiService, Job, Message as ApiMessage } from '@/services/unifiedApi';
 import { toast } from 'sonner';
 import ModernHeader from '@/components/ModernHeader';
+import { useAuth } from '@/context/AuthContext';
 
-interface Message {
-  id: string;
-  type: 'user' | 'ai';
-  content: string;
-  timestamp: number;
+interface Message extends ApiMessage {
+  type: 'user' | 'ai'; // Derived from sender
+  timestamp: number; // Derived from created_at
 }
 
 interface AnalysisData {
   contentType: 'video' | 'youtube' | 'text';
-  initialResponse: string;
+  initialResponse?: string; // Make optional as we'll fetch history
   videoUrl?: string;
   videoFile?: File;
   fileId?: string;
   originalMessage?: string;
+  conversationId?: string; // Add this to store job_id
 }
 
 const UniversalAnalysis = () => {
@@ -34,21 +34,28 @@ const UniversalAnalysis = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [prompt, setPrompt] = useState('');
   const [isLoading, setIsLoading] = useState(false); // For follow-up chats
-  const [isProcessing, setIsProcessing] = useState(false); // For initial analysis
+  const [isProcessing, setIsProcessing] = useState(false); // For initial analysis/polling
   const [processingStatus, setProcessingStatus] = useState('');
   const [embedUrl, setEmbedUrl] = useState('');
   const [videoError, setVideoError] = useState(false);
   const [videoObjectUrl, setVideoObjectUrl] = useState('');
+  const [currentJob, setCurrentJob] = useState<Job | null>(null);
+  const { isAuthenticated, loading: authLoading } = useAuth();
 
-  const { data: statusData, error: statusError } = useQuery<StatusResponse, Error>({
-    queryKey: ['analysisStatus', analysisData?.fileId],
-    queryFn: () => unifiedApiService.getStatus(analysisData!.fileId!),
-    enabled: !!analysisData?.fileId && isProcessing,
+  // Use useQuery to poll for job status and history
+  const { data: jobData, error: jobError } = useQuery<Job, Error>({
+    queryKey: ['jobStatusAndHistory', analysisData?.conversationId],
+    queryFn: async () => {
+      if (!analysisData?.conversationId) throw new Error("Conversation ID is missing.");
+      const job = await unifiedApiService.getJob(analysisData.conversationId);
+      const history = await unifiedApiService.getChatHistory(analysisData.conversationId);
+      return { ...job, messages: history };
+    },
+    enabled: !!analysisData?.conversationId && isAuthenticated, // Only enable if conversationId exists and authenticated
     refetchInterval: (query) => {
       const data = query.state.data;
-      // Stop polling if the analysis is active or has failed
       if (data?.status === 'ACTIVE' || data?.status === 'ERROR') {
-        return false;
+        return false; // Stop polling if job is active or in error
       }
       return 2000; // Poll every 2 seconds
     },
@@ -56,34 +63,22 @@ const UniversalAnalysis = () => {
   });
 
   useEffect(() => {
-    if (!analysisData) {
+    if (!analysisData || !analysisData.conversationId) {
       navigate('/');
       return;
     }
 
-    // If there's a fileId, it means we need to poll for status
-    if (analysisData.fileId) {
-      setIsProcessing(true);
-      setProcessingStatus('Starting analysis...');
-      const initialMessage: Message = {
-        id: 'initial-processing',
-        type: 'ai',
-        content: analysisData.initialResponse,
-        timestamp: Date.now()
-      };
-      setMessages([initialMessage]);
-    } else {
-      // Otherwise, the analysis was synchronous
-      const initialMessage: Message = {
-        id: 'initial',
-        type: 'ai',
-        content: analysisData.initialResponse,
-        timestamp: Date.now()
-      };
-      setMessages([initialMessage]);
+    if (!isAuthenticated && !authLoading) {
+      toast.error("You must be signed in to view analysis.");
+      navigate('/');
+      return;
     }
 
-    // Handle video display
+    // Set initial processing state if a conversationId is provided (meaning a job was started)
+    setIsProcessing(true);
+    setProcessingStatus('Loading conversation...');
+
+    // Handle video display based on initial analysisData
     if (analysisData.contentType === 'youtube' && analysisData.videoUrl) {
       const videoId = extractVideoId(analysisData.videoUrl);
       if (videoId) setEmbedUrl(`https://www.youtube.com/embed/${videoId}`);
@@ -96,40 +91,35 @@ const UniversalAnalysis = () => {
     return () => {
       if (videoObjectUrl) URL.revokeObjectURL(videoObjectUrl);
     };
-  }, [analysisData, navigate]);
+  }, [analysisData, navigate, isAuthenticated, authLoading]);
 
-  // Effect to handle status updates from polling
+  // Effect to handle job status and history updates from polling
   useEffect(() => {
-    if (statusData) {
-      setProcessingStatus(statusData.message || statusData.status);
-      if (statusData.status === 'ACTIVE') {
+    if (jobData) {
+      setCurrentJob(jobData);
+      // Map ApiMessage to local Message type for display
+      const formattedMessages: Message[] = jobData.messages?.map(msg => ({
+        ...msg,
+        id: msg.id.toString(), // Ensure ID is string for React key
+        type: msg.sender.toLowerCase() === 'user' ? 'user' : 'ai',
+        timestamp: new Date(msg.created_at).getTime(),
+      })) || [];
+      setMessages(formattedMessages);
+
+      setProcessingStatus(jobData.status);
+      if (jobData.status === 'ACTIVE') {
         setIsProcessing(false);
-        const finalMessage: Message = {
-          id: 'final-analysis',
-          type: 'ai',
-          content: statusData.response || 'Analysis complete. You can now ask me questions.',
-          timestamp: Date.now()
-        };
-        // Replace the "processing" message with the final one
-        setMessages(prev => [finalMessage]);
         toast.success('Analysis complete!');
-      } else if (statusData.status === 'ERROR') {
+      } else if (jobData.status === 'ERROR') {
         setIsProcessing(false);
-        const errorMessage: Message = {
-          id: 'error-analysis',
-          type: 'ai',
-          content: statusData.message || 'An error occurred during analysis.',
-          timestamp: Date.now()
-        };
-        setMessages(prev => [errorMessage]);
-        toast.error('Analysis failed.');
+        toast.error(jobData.error_message || 'An error occurred during analysis.');
       }
     }
-    if (statusError) {
+    if (jobError) {
       setIsProcessing(false);
-      toast.error(statusError.message);
+      toast.error(jobError.message);
     }
-  }, [statusData, statusError]);
+  }, [jobData, jobError]);
 
   useEffect(() => {
     scrollToBottom();
@@ -154,13 +144,16 @@ const UniversalAnalysis = () => {
   const handleSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault();
     const messageText = prompt.trim();
-    if (!messageText || isLoading || isProcessing) return;
+    if (!messageText || isLoading || isProcessing || !analysisData?.conversationId) return;
 
     const userMessage: Message = {
-      id: Date.now().toString(),
+      id: Date.now().toString(), // Client-side ID for immediate display
       type: 'user',
+      sender: 'USER', // Backend expects 'USER' or 'AI'
       content: messageText,
-      timestamp: Date.now()
+      created_at: new Date().toISOString(), // Use ISO string for backend
+      job_id: analysisData.conversationId, // Associate with current job
+      timestamp: Date.now() // For local sorting/display
     };
 
     setMessages(prev => [...prev, userMessage]);
@@ -168,26 +161,23 @@ const UniversalAnalysis = () => {
     setIsLoading(true);
 
     try {
-      const response = await unifiedApiService.continueChat(messageText, {
-        contentType: analysisData?.contentType,
-        fileId: analysisData?.fileId,
-        originalMessage: analysisData?.originalMessage
-      });
+      await unifiedApiService.continueChat(analysisData.conversationId, messageText);
 
-      const aiMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        type: 'ai',
-        content: response.response,
-        timestamp: Date.now()
-      };
-      setMessages(prev => [...prev, aiMessage]);
+      // The response from continueChat is just a confirmation, the actual new messages
+      // will come from the polling of getChatHistory via useQuery.
+      // We can optionally add a temporary AI message here if we want immediate feedback
+      // before the poll updates, but for now, we'll rely on polling.
+
     } catch (error) {
       console.error('Failed to generate response:', error);
       toast.error('Failed to generate response. Please try again.');
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
         type: 'ai',
+        sender: 'AI',
         content: 'Sorry, I encountered an error. Please try again.',
+        created_at: new Date().toISOString(),
+        job_id: analysisData.conversationId,
         timestamp: Date.now()
       };
       setMessages(prev => [...prev, errorMessage]);
@@ -208,7 +198,6 @@ const UniversalAnalysis = () => {
   };
 
   const renderVideoPlayer = () => {
-    // ... (This function remains the same, so it's omitted for brevity)
     if (analysisData?.contentType === 'youtube') {
         if (videoError) {
           return (
@@ -220,7 +209,7 @@ const UniversalAnalysis = () => {
           );
         } else if (embedUrl) {
           return (
-            <div className="h-full bg-slate-100 rounded-lg overflow-hidden">
+            <div className="absolute inset-0">
               <iframe
                 src={embedUrl}
                 title="YouTube video player"
@@ -235,7 +224,7 @@ const UniversalAnalysis = () => {
         }
       } else if (analysisData?.contentType === 'video' && videoObjectUrl) {
         return (
-          <div className="h-full bg-slate-100 rounded-lg overflow-hidden">
+          <div className="absolute inset-0">
             <video
               src={videoObjectUrl}
               controls
@@ -249,7 +238,7 @@ const UniversalAnalysis = () => {
       }
   
       return (
-        <div className="h-full bg-slate-100 rounded-lg flex items-center justify-center">
+        <div className="absolute inset-0 flex items-center justify-center">
           <div className="text-center">
             <Play className="w-16 h-16 text-slate-400 mx-auto mb-4" />
             <p className="text-slate-600 font-medium">No video content</p>
@@ -259,15 +248,14 @@ const UniversalAnalysis = () => {
       );
   };
 
-  if (!analysisData) {
-    // ... (This part remains the same)
+  if (!analysisData || !analysisData.conversationId) {
     return (
         <div className="min-h-screen bg-slate-50">
           <ModernHeader />
           <div className="container mx-auto px-4 py-8">
             <div className="text-center">
               <h1 className="text-2xl font-bold text-slate-800 mb-4">No Content Found</h1>
-              <p className="text-slate-600 mb-4">No analysis data was provided.</p>
+              <p className="text-slate-600 mb-4">No analysis data was provided or conversation ID.</p>
               <Button onClick={() => navigate('/')}>
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Back to Home
@@ -301,7 +289,9 @@ const UniversalAnalysis = () => {
                 {analysisData.contentType === 'youtube' ? 'YouTube Video' : 
                  analysisData.contentType === 'video' ? 'Video Content' : 'Text Analysis'}
               </h2>
-              <div className="flex-1 min-h-0">{renderVideoPlayer()}</div>
+              <div className="flex-1 min-h-0 relative pb-[56.25%] h-0 overflow-hidden rounded-lg bg-slate-100">
+                {renderVideoPlayer()}
+              </div>
             </Card>
 
             <Card className="lg:col-span-2 p-4 flex flex-col h-full">

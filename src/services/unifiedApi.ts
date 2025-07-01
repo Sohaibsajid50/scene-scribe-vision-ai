@@ -10,19 +10,24 @@ interface UnifiedChatResponse {
   file_id?: string;
 }
 
-interface StatusResponse {
-  file_id: string;
-  status: 'UPLOADING' | 'PROCESSING' | 'ACTIVE' | 'ERROR';
-  progress?: number;
-  message?: string;
-  response?: string; // The final analysis response when status is ACTIVE
-}
+import { Job, Message, StatusResponse } from '@/models/api_models';
 
 class UnifiedAPIService {
   private baseURL: string;
+  private tokenKey = 'access_token';
 
   constructor(baseURL: string = 'http://localhost:8000') {
     this.baseURL = baseURL;
+  }
+
+  private getAuthHeaders(): HeadersInit {
+    const token = localStorage.getItem(this.tokenKey);
+    if (token) {
+      return {
+        'Authorization': `Bearer ${token}`,
+      };
+    }
+    return {};
   }
 
   async sendMessage(request: UnifiedChatRequest): Promise<UnifiedChatResponse> {
@@ -33,9 +38,9 @@ class UnifiedAPIService {
       formData.append('file', request.file);
     }
 
-    // Send to single endpoint - let backend agent orchestration handle routing
     const response = await fetch(`${this.baseURL}/api/chat`, {
       method: 'POST',
+      headers: this.getAuthHeaders(),
       body: formData,
     });
 
@@ -47,7 +52,9 @@ class UnifiedAPIService {
   }
 
   async getStatus(fileId: string): Promise<StatusResponse> {
-    const response = await fetch(`${this.baseURL}/api/status/${fileId}`);
+    const response = await fetch(`${this.baseURL}/api/status/${fileId}`, {
+      headers: this.getAuthHeaders(),
+    });
 
     if (!response.ok) {
       throw new Error(`Status check failed: ${response.statusText}`);
@@ -56,17 +63,14 @@ class UnifiedAPIService {
     return response.json();
   }
 
-  // Keep existing method for follow-up questions in analysis page
-  async continueChat(message: string, context?: any): Promise<UnifiedChatResponse> {
-    const response = await fetch(`${this.baseURL}/api/chat`, {
+  async continueChat(jobId: string, message: string): Promise<UnifiedChatResponse> {
+    const formData = new FormData();
+    formData.append('message', message);
+
+    const response = await fetch(`${this.baseURL}/api/chat/${jobId}`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        message,
-        context,
-      }),
+      headers: this.getAuthHeaders(),
+      body: formData,
     });
 
     if (!response.ok) {
@@ -75,7 +79,29 @@ class UnifiedAPIService {
 
     return response.json();
   }
+
+  async getHistory(): Promise<Job[]> {
+    const response = await fetch(`${this.baseURL}/api/history`, {
+      headers: this.getAuthHeaders(),
+    });
+    if (!response.ok) {
+      throw new Error(`Failed to fetch history: ${response.statusText}`);
+    }
+    return response.json();
+  }
+
+  async getChatHistory(jobId: string): Promise<Message[]> {
+    const response = await fetch(`${this.baseURL}/api/history/${jobId}`, {
+      headers: this.getAuthHeaders(),
+    });
+    if (!response.ok) {
+      throw new Error(`Failed to fetch chat history for job ${jobId}: ${response.statusText}`);
+    }
+    return response.json();
+  }
 }
 
 export const unifiedApiService = new UnifiedAPIService();
-export type { UnifiedChatRequest, UnifiedChatResponse, StatusResponse };
+export type { UnifiedChatRequest, UnifiedChatResponse, StatusResponse, Job, Message };
+
+// Define Job and Message types here as they are used in the new methods
