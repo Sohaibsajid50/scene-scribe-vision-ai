@@ -63,6 +63,16 @@ class UnifiedAPIService {
     return response.json();
   }
 
+  async getJob(jobId: string): Promise<Job> {
+    const response = await fetch(`${this.baseURL}/api/history/${jobId}`, {
+      headers: this.getAuthHeaders(),
+    });
+    if (!response.ok) {
+      throw new Error(`Failed to fetch job ${jobId}: ${response.statusText}`);
+    }
+    return response.json();
+  }
+
   async continueChat(jobId: string, message: string): Promise<UnifiedChatResponse> {
     const formData = new FormData();
     formData.append('message', message);
