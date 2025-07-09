@@ -6,7 +6,7 @@ load_dotenv()
 
 class Settings:
     # App
-    PROJECT_NAME: str = "Scene Scribe"
+    PROJECT_NAME: str = "Scene Speak"
     
     # Database
     DATABASE_URL: str = os.getenv("DATABASE_URL", "")
@@ -20,6 +20,10 @@ class Settings:
     GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
     GOOGLE_CLIENT_ID: str = os.getenv("GOOGLE_CLIENT_ID", "")
     GOOGLE_CLIENT_SECRET: str = os.getenv("GOOGLE_CLIENT_SECRET", "")
+
+    # ADK
+    ADK_API_URL: str = os.getenv("ADK_API_URL", "http://localhost:8001")
+    APP_NAME: "Planner"
 
 
 settings = Settings()

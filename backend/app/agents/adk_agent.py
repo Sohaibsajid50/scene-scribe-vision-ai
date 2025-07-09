@@ -1,112 +1,120 @@
-from langchain_google_vertexai import ChatVertexAI
-from langgraph.prebuilt import create_react_agent
-from langgraph.graph import StateGraph, END
-from typing import TypedDict, Annotated, List
-from langchain_core.messages import BaseMessage, HumanMessage
-from langchain_openai import ChatOpenAI
 import os
 from dotenv import load_dotenv
 from google import genai
-from langgraph_supervisor import create_supervisor
-import vertexai
 from google.generativeai import types
-import google.generativeai as generativeai
-import tempfile
+from google.adk.agents import Agent, BaseAgent
+from google.adk.tools import agent_tool
+from google.adk.events import Event
+from pydantic import BaseModel
 from fastapi import UploadFile
 import time
 import re
+import tempfile
 
 load_dotenv()
 
-generativeai.configure(api_key=os.getenv("OPENAI_API_KEY"))
-model = ChatOpenAI(model="gpt-4o")
 client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
-vertexai.init(project=os.getenv("GOOGLE_CLOUD_PROJECT"), location=os.getenv("GOOGLE_CLOUD_LOCATION"))
 
-
-# Define the tools for the agents
 async def upload_to_gemini(file: UploadFile):
+    """Uploads a file to Gemini and returns the file object."""
     file_bytes = await file.read()
 
     with tempfile.NamedTemporaryFile(delete=False, suffix=file.filename) as temp_file:
         temp_file.write(file_bytes)
         temp_file_path = temp_file.name
 
+    print(f"Uploading file: {temp_file_path}")
     myfile = client.files.upload(file=temp_file_path)
+    print(f"File uploaded: {myfile.name}, state: {myfile.state}")
 
-    # Wait until the file becomes ACTIVE
-    while True:
-        status = client.files.get(name=myfile.name).state
-        if status == "ACTIVE":
-            break
-        elif status == "FAILED":
-            raise Exception("Gemini file processing failed.")
+    while myfile.state != "ACTIVE":
+        print(f"Waiting for file to become active. Current state: {myfile.state}")
         time.sleep(2)
+        myfile = client.files.get(name=myfile.name)
+        if myfile.state == "FAILED":
+            raise Exception(f"Gemini file processing failed: {myfile.error}")
 
+    print(f"File is active: {myfile.name}")
+    os.remove(temp_file_path)
     return myfile
 
-def generate_from_video(file_id: str, prompt: str):
-    "Use this tool to generate from file uding the file id"
-    file_reference = client.files.get(name=file_id)
-    response = client.models.generate_content(
-        model="gemini-2.5-flash-preview-05-20",
-        contents=[file_reference, prompt]
-    )
-    return response.text
 
-def generate_from_youtube(youtube_url: str, prompt: str):
-    "Use this tool to generate from the youtube url"
-    response = client.models.generate_content(
-        model="gemini-2.5-flash-preview-05-20",
-        contents=types.Content(
-            parts=[
-                types.Part(
-                    file_data=types.FileData(file_uri=youtube_url),
-                ),
-                types.Part(text=prompt)
-            ]
+class YouTubeGeneratorAgent(BaseAgent):
+    name: str = "YouTubeGenerator"
+    description: str = "Generates text from a YouTube video and prompt."
+
+    async def _run_async_impl(self, ctx):
+        youtube_url = ctx.session.state.get("youtube_url")
+        prompt = ctx.session.state.get("prompt")
+        
+        response = client.models.generate_content(
+            model="gemini-1.5-flash",
+            contents=types.Content(
+                parts=[
+                    types.Part(
+                        file_data=types.FileData(file_uri=youtube_url),
+                    ),
+                    types.Part(text=prompt)
+                ]
+            )
         )
-    )
-    return response.text
 
-# Create the agents
-video_agent = create_react_agent(
-    model="gemini-2.5-flash-preview-05-20",
-    tools=[generate_from_video],
-    name="video_agent",
-    prompt=("You are a file agent that generates content based on files. "
-            "You will receive a file ID and a prompt. "
-            "Your task is to generate content based on the file and the given prompt."),
-)
+        llm_content = types.Content(parts=[types.Part(text="")])
+        video_text = ""
 
-youtube_agent = create_react_agent(
-    model="gemini-2.5-flash-preview-05-20",
-    tools=[generate_from_youtube],
-    name="youtube_generator",
-    prompt=("You are a YouTube agent that generates content based on YouTube videos. "
-              "You will receive a YouTube URL and a prompt. "
-              "Your task is to generate content based on the video at the provided URL and the given prompt."),
-)
+        if response.candidates and response.candidates[0].content and response.candidates[0].content.parts:
+            llm_content = response.candidates[0].content
+            video_text = llm_content.parts[0].text or ""
+
+        ctx.session.state["video_text"] = video_text
+        yield Event(author=self.name, content=llm_content)
+
+yt_agent = YouTubeGeneratorAgent()
+yt_tool = agent_tool.AgentTool(agent=yt_agent)
 
 
+class VideoGeneratorAgent(BaseAgent):
+    name: str = "VideoGenerator"
+    description: str = "Generates text from an uploaded video file and prompt."
 
+    async def _run_async_impl(self, ctx):
+        file_id = ctx.session.state.get("file_id")
+        prompt = ctx.session.state.get("prompt")
 
-# Define the state for the supervisor
-class AgentState(TypedDict):
-    messages: Annotated[List[BaseMessage], lambda x, y: x + y]
+        file_reference = client.files.get(name=file_id)
+        response = client.models.generate_content(
+            model="gemini-1.5-flash",
+            contents=[file_reference, prompt]
+        )
 
-# Create the supervisor
-supervisor_workflow = create_supervisor(
-    agents=[video_agent, youtube_agent],
-    model=model,
-    prompt=(
-        "You are a planner agent that decides which sub-agent to use based on the user's input. "
-        "You will receive a user prompt and a file ID or YouTube URL. "
-        "You will determine which sub-agent ('video_agent' or 'youtube_agent') should handle the request."
-    ),
-    output_mode="last_message",
-    supervisor_name="planner_agent",
-)
+        llm_content = types.Content(parts=[types.Part(text="")])
+        video_text = ""
 
-adk_app = supervisor_workflow.compile()
+        if response.candidates and response.candidates[0].content and response.candidates[0].content.parts:
+            llm_content = response.candidates[0].content
+            video_text = llm_content.parts[0].text or ""
+
+        ctx.session.state["video_text"] = video_text
+        yield Event(author=self.name, content=llm_content)
+
+video_agent = VideoGeneratorAgent()
+video_tool = agent_tool.AgentTool(agent=video_agent)
+
+# def create_planner_agent():
+
+#         planner_agent = Agent(
+#             name="Analyzer",
+#             model="gemini-1.5-flash",
+#             instruction="You are a conversational agent that analyzes videos and answers questions about them. "
+#                         "Your first task is to get the video content. If the user provides a YouTube URL, use the YouTubeGenerator agent. "
+#                         "If the user provides a file ID, use the VideoGenerator agent. "
+#                         "Once the video content is stored in 'video_text' in the session state, you must answer all follow-up questions using that text. "
+#                         "Do not use the tools again for the same video. "
+#                         "If the user wants to discuss a new video, they must start a new conversation.",
+#             description="Orchestrates video analysis and answers follow-up questions based on the extracted text.",
+#             tools=[video_tool, yt_tool]
+#         )
+#         return planner_agent
+
+# root_agent = create_planner_agent
