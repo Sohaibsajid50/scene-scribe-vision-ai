@@ -23,7 +23,7 @@ class Settings:
 
     # ADK
     ADK_API_URL: str = os.getenv("ADK_API_URL", "http://localhost:8001")
-    APP_NAME: "Planner"
+    APP_NAME: str = "Planner"
 
 
 settings = Settings()

@@ -10,7 +10,7 @@ from app.crud import job_crud
 from app.services.history_service import history_service
 from app.agents.adk_agent import upload_to_gemini
 from app.core.config import settings
-from langchain_core.messages import HumanMessage
+# from langchain_core.messages import HumanMessage
 
 router = APIRouter(prefix="/api/chat", tags=["Chat"])
 
@@ -28,7 +28,7 @@ async def create_adk_session(session_id: str, current_user: str) -> bool:
                 data=json.dumps({}),
                 timeout=60.0
             )
-            response.raise_for_status()  # Will raise an exception for 4xx/5xx responses
+            response.raise_for_status() 
             return True
     except httpx.HTTPStatusError as e:
         # Log the error for debugging
@@ -112,15 +112,23 @@ async def continue_chat(
         raise HTTPException(status_code=404, detail="Conversation not found")
 
     session_id = str(job.id)
-    adk_url = f"{settings.ADK_API_URL}/invoke"
-    payload = {
-        "input": {"messages": [HumanMessage(content=message).dict()]},
-        "config": {"configurable": {"session_id": session_id}}
-    }
+    adk_url = f"{settings.ADK_API_URL}/run"
 
     try:
         async with httpx.AsyncClient() as client:
-            response = await client.post(adk_url, json=payload, timeout=300.0)
+            response = await client.post(
+                f"{settings.ADK_API_URL}/run",
+                headers={"Content-Type": "application/json"},
+                data=json.dumps({
+                    "app_name": settings.APP_NAME,
+                    "user_id": current_user.id,
+                    "session_id": session_id,
+                    "new_message":{
+                        "role": "user",
+                        "parts": [{"text": message}]
+                    }
+                }),
+            )
             response.raise_for_status()
             adk_result = response.json()
     except httpx.RequestError as e:
@@ -128,15 +136,14 @@ async def continue_chat(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error communicating with ADK service: {e}")
 
-    try:
-        response_content = adk_result['output']['messages'][-1]['content']
-    except (KeyError, IndexError, TypeError):
-        response_content = "Error parsing ADK response."
+    for event in adk_result:
+        if event.get("content", {}).get("role") == "model" and "text" in event.get("content", {}).get("parts", [{}])[0]:
+            assistant_message = event["content"]["parts"][0]["text"]
 
     history_service.add_message_to_history(session_id, "USER", message)
-    history_service.add_message_to_history(session_id, "ASSISTANT", response_content)
+    history_service.add_message_to_history(session_id, "ASSISTANT", assistant_message)
 
-    return {"response": response_content, "conversation_id": session_id}
+    return {"response": assistant_message, "conversation_id": session_id}
 
 @router.get("/history", response_model=List[api_models.Job])
 def get_history(

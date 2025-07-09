@@ -38,7 +38,7 @@ class UnifiedAPIService {
       formData.append('file', request.file);
     }
 
-    const response = await fetch(`${this.baseURL}/api/chat`, {
+    const response = await fetch(`${this.baseURL}/api/chat/start`, {
       method: 'POST',
       headers: this.getAuthHeaders(),
       body: formData,
