@@ -5,7 +5,7 @@ from app.models.db_models import JobStatus
 from app.db.session import SessionLocal
 from app.agents.adk_agent import adk_app, video_agent, youtube_agent
 from app.services.history_service import history_service
-# from langchain_core.messages import HumanMessage
+from langchain_core.messages import HumanMessage
 
 async def process_job(job_id: uuid.UUID, user_id: int):
     """

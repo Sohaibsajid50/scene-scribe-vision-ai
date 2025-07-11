@@ -60,8 +60,14 @@ class User(UserBase):
 # ============================================
 
 class Message(BaseModel):
-    sender: str  # "USER" or "AI"
+    id: uuid.UUID
+    job_id: uuid.UUID
+    sender: str
     content: str
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
 
 class ChatRequest(BaseModel):
     message: str

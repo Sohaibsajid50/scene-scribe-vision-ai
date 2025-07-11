@@ -12,11 +12,10 @@ class RedisClient:
     def lrange(self, key: str, start: int, end: int) -> List[str]:
         return self.client.lrange(key, start, end)
 
-    def get_history(self, conversation_id: str) -> List[Dict[str, str]]:
-        """Retrieves the current chat history for a job from Redis."""
+    def get_history(self, conversation_id: str) -> List[str]:
+        """Retrieves the current chat history for a job from Redis as a list of JSON strings."""
         key = f"chat_history:{conversation_id}"
-        history_json = self.lrange(key, 0, -1)
-        return [json.loads(msg) for msg in history_json]
+        return self.lrange(key, 0, -1)
 
     def delete_history(self, conversation_id: str):
         """Deletes the chat history for a given job from Redis."""

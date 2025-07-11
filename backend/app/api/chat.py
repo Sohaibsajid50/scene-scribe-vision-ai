@@ -21,6 +21,7 @@ async def create_adk_session(session_id: str, current_user: str) -> bool:
     """
     adk_session_url = f"{settings.ADK_API_URL}/apps/{settings.APP_NAME}/users/{current_user}/sessions/{session_id}"
     try:
+        print(f"Attempting to create ADK session at: {adk_session_url}")
         async with httpx.AsyncClient() as client:
             response = await client.post(
                 adk_session_url,
@@ -29,13 +30,13 @@ async def create_adk_session(session_id: str, current_user: str) -> bool:
                 timeout=60.0
             )
             response.raise_for_status() 
+            print(f"Successfully created ADK session for user {current_user}, session {session_id}")
             return True
     except httpx.HTTPStatusError as e:
-        # Log the error for debugging
-        print(f"Failed to create ADK session. Status: {e.response.status_code}, Response: {e.response.text}")
+        print(f"Failed to create ADK session. HTTP Status: {e.response.status_code}, Response: {e.response.text}")
         return False
-    except httpx.RequestError:
-        # Network-level error
+    except httpx.RequestError as e:
+        print(f"Failed to create ADK session due to network error: {e}")
         return False
 
 
@@ -64,7 +65,7 @@ async def start_chat(
         gemini_file = await upload_to_gemini(file)
         gemini_file_id = gemini_file.name
         title = file.filename
-        first_turn_message += f"\n\nFile ID: {gemini_file_id}"
+        
     elif "youtube.com" in message or "youtu.be" in message:
         job_type = db_models.JobType.YOUTUBE
         source_url = message
@@ -77,22 +78,32 @@ async def start_chat(
     )
     session_id = str(job.id)
 
+    # Set job status to PROCESSING immediately after creation
+    job_crud.update_job_status(db, job_id=job.id, user_id=current_user.id, status=db_models.JobStatus.PROCESSING)
+
     # Await and check the result of session creation
     session_created = await create_adk_session(session_id, str(current_user.id))
     
     if not session_created:
+        job_crud.update_job_status(db, job_id=job.id, user_id=current_user.id, status=db_models.JobStatus.ERROR, error_message="Failed to create ADK session.")
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Failed to create a session with the analysis service. Please try again later."
         )
 
     # Proceed to send the first message
-    return await continue_chat(
+    chat_response = await continue_chat(
         job_id=job.id,
         db=db,
         current_user=current_user,
-        message=first_turn_message  # Pass the combined message
+        message=first_turn_message,  # Pass the combined message
+        gemini_file_id=gemini_file_id,
+        source_url=source_url
     )
+    
+    # After continue_chat, the status should be updated by continue_chat itself.
+    # We just return the response.
+    return chat_response
 
 
 
@@ -102,6 +113,8 @@ async def continue_chat(
     db: Session = Depends(dependencies.get_db),
     current_user: db_models.User = Depends(dependencies.get_current_user),
     message: str = Form(...),
+    gemini_file_id: Optional[str] = Form(None),
+    source_url: Optional[str] = Form(None),
 ):
     """
 
@@ -116,34 +129,44 @@ async def continue_chat(
 
     try:
         async with httpx.AsyncClient() as client:
+            request_data = {
+                "app_name": settings.APP_NAME,
+                "user_id": str(current_user.id),
+                "session_id": session_id,
+                "new_message":{
+                    "role": "user",
+                    "parts": [
+                        {"text": message + (f"\n\nGemini File ID: {gemini_file_id}" if gemini_file_id else "") + (f"\n\nYouTube URL: {source_url}" if source_url else "")}
+                    ]
+                }
+            }
+            print(f"Sending request to ADK /run: URL={settings.ADK_API_URL}/run, Data={json.dumps(request_data)}")
             response = await client.post(
                 f"{settings.ADK_API_URL}/run",
                 headers={"Content-Type": "application/json"},
-                data=json.dumps({
-                    "app_name": settings.APP_NAME,
-                    "user_id": current_user.id,
-                    "session_id": session_id,
-                    "new_message":{
-                        "role": "user",
-                        "parts": [{"text": message}]
-                    }
-                }),
+                data=json.dumps(request_data),
             )
             response.raise_for_status()
             adk_result = response.json()
+            print(f"Received response from ADK /run: Status={response.status_code}, Response={response.text}")
+
+        assistant_message = ""  # Initialize to an empty string
+        for event in adk_result:
+            if event.get("content", {}).get("role") == "model" and "text" in event.get("content", {}).get("parts", [{}])[0]:
+                assistant_message = event["content"]["parts"][0]["text"]
+
+        history_service.add_message_to_history(session_id, "USER", message)
+        history_service.add_message_to_history(session_id, "ASSISTANT", assistant_message)
+        job_crud.update_job_status(db, job_id=job_id, user_id=current_user.id, status=db_models.JobStatus.ACTIVE)
+
+        return {"response": assistant_message, "conversation_id": session_id}
+
     except httpx.RequestError as e:
+        job_crud.update_job_status(db, job_id=job_id, user_id=current_user.id, status=db_models.JobStatus.ERROR, error_message=f"ADK service unavailable: {e}")
         raise HTTPException(status_code=503, detail=f"ADK service unavailable: {e}")
     except Exception as e:
+        job_crud.update_job_status(db, job_id=job_id, user_id=current_user.id, status=db_models.JobStatus.ERROR, error_message=f"Error communicating with ADK service: {e}")
         raise HTTPException(status_code=500, detail=f"Error communicating with ADK service: {e}")
-
-    for event in adk_result:
-        if event.get("content", {}).get("role") == "model" and "text" in event.get("content", {}).get("parts", [{}])[0]:
-            assistant_message = event["content"]["parts"][0]["text"]
-
-    history_service.add_message_to_history(session_id, "USER", message)
-    history_service.add_message_to_history(session_id, "ASSISTANT", assistant_message)
-
-    return {"response": assistant_message, "conversation_id": session_id}
 
 @router.get("/history", response_model=List[api_models.Job])
 def get_history(
@@ -160,9 +183,32 @@ def get_chat_history(
     db: Session = Depends(dependencies.get_db),
     current_user: db_models.User = Depends(dependencies.get_current_user),
 ):
-    """Gets the full persisted chat history for a specific job."""
+    """Gets the full chat history for a specific job, checking Redis first, then the database."""
     job = job_crud.get_job(db, job_id=job_id, user_id=current_user.id)
     if not job:
         raise HTTPException(status_code=404, detail="Conversation not found")
         
-    return job.messages
+    # Try fetching from Redis first
+    redis_history_raw = history_service.get_history(str(job_id))
+    if redis_history_raw:
+        return [api_models.Message.model_validate(json.loads(msg)) for msg in redis_history_raw]
+
+    # If not in Redis, fetch from DB
+    if job.messages:
+        return job.messages
+
+    # If no history in Redis or DB, return empty list.
+    # This handles the case where the job is created but the first turn is not yet complete.
+    return []
+
+@router.get("/job/{job_id}", response_model=api_models.Job)
+def get_job_details(
+    job_id: uuid.UUID,
+    db: Session = Depends(dependencies.get_db),
+    current_user: db_models.User = Depends(dependencies.get_current_user),
+):
+    """Gets the details of a single job."""
+    job = job_crud.get_job(db, job_id=job_id, user_id=current_user.id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    return job

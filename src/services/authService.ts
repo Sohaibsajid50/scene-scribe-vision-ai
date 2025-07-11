@@ -1,6 +1,6 @@
 import { UserCreate, UserLogin, Token, User } from '@/models/api_models';
 
-const BASE_URL = 'http://localhost:8000';
+const BASE_URL = 'http://localhost:8050';
 
 interface AuthResponse {
   access_token: string;

@@ -16,7 +16,7 @@ class UnifiedAPIService {
   private baseURL: string;
   private tokenKey = 'access_token';
 
-  constructor(baseURL: string = 'http://localhost:8000') {
+  constructor(baseURL: string = 'http://localhost:8050') {
     this.baseURL = baseURL;
   }
 
@@ -64,7 +64,7 @@ class UnifiedAPIService {
   }
 
   async getJob(jobId: string): Promise<Job> {
-    const response = await fetch(`${this.baseURL}/api/history/${jobId}`, {
+    const response = await fetch(`${this.baseURL}/api/chat/job/${jobId}`, {
       headers: this.getAuthHeaders(),
     });
     if (!response.ok) {
@@ -91,7 +91,7 @@ class UnifiedAPIService {
   }
 
   async getHistory(): Promise<Job[]> {
-    const response = await fetch(`${this.baseURL}/api/history`, {
+    const response = await fetch(`${this.baseURL}/api/chat/history`, {
       headers: this.getAuthHeaders(),
     });
     if (!response.ok) {
@@ -101,7 +101,7 @@ class UnifiedAPIService {
   }
 
   async getChatHistory(jobId: string): Promise<Message[]> {
-    const response = await fetch(`${this.baseURL}/api/history/${jobId}`, {
+    const response = await fetch(`${this.baseURL}/api/chat/history/${jobId}`, {
       headers: this.getAuthHeaders(),
     });
     if (!response.ok) {

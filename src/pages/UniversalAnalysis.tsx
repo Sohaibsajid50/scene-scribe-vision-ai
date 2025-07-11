@@ -11,6 +11,7 @@ import ModernHeader from '@/components/ModernHeader';
 import { useAuth } from '@/context/AuthContext';
 
 interface Message extends ApiMessage {
+  id?: string; // Make optional as it might not always be present from backend initially
   type: 'user' | 'ai'; // Derived from sender
   timestamp: number; // Derived from created_at
 }
@@ -54,8 +55,12 @@ const UniversalAnalysis = () => {
     enabled: !!analysisData?.conversationId && isAuthenticated, // Only enable if conversationId exists and authenticated
     refetchInterval: (query) => {
       const data = query.state.data;
-      if (data?.status === 'ACTIVE' || data?.status === 'ERROR') {
-        return false; // Stop polling if job is active or in error
+      const currentMessagesCount = query.state.data?.messages?.length || 0;
+      const previousMessagesCount = messages.length; // Use the component's state for comparison
+
+      // Stop polling if job is active or in error AND the message count has increased
+      if ((data?.status === 'ACTIVE' || data?.status === 'ERROR') && currentMessagesCount > previousMessagesCount) {
+        return false; 
       }
       return 2000; // Poll every 2 seconds
     },
@@ -98,9 +103,9 @@ const UniversalAnalysis = () => {
     if (jobData) {
       setCurrentJob(jobData);
       // Map ApiMessage to local Message type for display
-      const formattedMessages: Message[] = jobData.messages?.map(msg => ({
+      const formattedMessages: Message[] = jobData.messages?.map((msg, index) => ({
         ...msg,
-        id: msg.id.toString(), // Ensure ID is string for React key
+        id: msg.id || `${msg.timestamp}-${index}`, // Use existing ID or generate a fallback
         type: msg.sender.toLowerCase() === 'user' ? 'user' : 'ai',
         timestamp: new Date(msg.created_at).getTime(),
       })) || [];
@@ -113,6 +118,8 @@ const UniversalAnalysis = () => {
       } else if (jobData.status === 'ERROR') {
         setIsProcessing(false);
         toast.error(jobData.error_message || 'An error occurred during analysis.');
+      } else { // PENDING or PROCESSING
+        setIsProcessing(true);
       }
     }
     if (jobError) {

@@ -1,7 +1,7 @@
 from dotenv import load_dotenv
 from google import genai
 import os
-from google.adk.agents import Agent
+from google.adk.agents import Agent, LlmAgent
 from google.genai import types
 
 load_dotenv()
@@ -21,7 +21,7 @@ def upload_to_gemini(file_path: str):
     myfile = client.files.upload(file=file_path)
     return myfile
 
-def generate_from_file(file_id: str, prompt: str):
+async def generate_from_file(file_id: str, prompt: str):
     file_reference = client.files.get(name=file_id)
     response = client.models.generate_content(
         model="gemini-2.5-flash-preview-05-20",
@@ -60,10 +60,10 @@ def generate_from_youtube(
     )
     return response.text
 
-def create_agent():
-        planner_agent = Agent(
+
+planner_agent = LlmAgent(
                     name="Planner",
-                    model="gemini-1.5-flash",
+                    model="gemini-1.5-pro",
                     instruction="You are a conversational agent that analyzes videos and answers questions about them. "
                                 "Your first task is to get the video content. If the user provides a YouTube URL, use the YouTubeGenerator agent. "
                                 "If the user provides a file ID, use the VideoGenerator agent. "
@@ -75,6 +75,5 @@ def create_agent():
                     description="Orchestrates video analysis and answers follow-up questions based on the extracted text.",
                     tools=[generate_from_youtube, generate_from_file, upload_to_gemini]
         )
-        return planner_agent
 
-root_agent = create_agent()
+root_agent = planner_agent

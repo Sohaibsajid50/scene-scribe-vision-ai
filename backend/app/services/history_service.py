@@ -5,6 +5,7 @@ from app.crud import job_crud
 from app.models import db_models
 from sqlalchemy.orm import Session
 import uuid
+from datetime import datetime
 
 class HistoryService:
     def __init__(self, client):
@@ -15,7 +16,13 @@ class HistoryService:
         Appends a new message to the conversation history in Redis.
         """
         key = f"chat_history:{conversation_id}"
-        new_message = {"sender": sender, "content": message}
+        new_message = {
+            "id": str(uuid.uuid4()),
+            "job_id": conversation_id,
+            "sender": sender,
+            "content": message,
+            "created_at": datetime.utcnow().isoformat()
+        }
         self.client.rpush(key, json.dumps(new_message))
 
     def get_history(self, conversation_id: str) -> List[Dict[str, str]]:
