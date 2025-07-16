@@ -1,14 +1,14 @@
-
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { User, LogIn, LogOut } from 'lucide-react';
+import { User, LogIn, LogOut, History } from 'lucide-react'; // Import History icon
 import AuthModal from './AuthModal';
-import { useAuth } from '@/context/AuthContext'; // Import useAuth
+import { useAuth } from '@/context/AuthContext';
 
 const ModernHeader = () => {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
-  const { isAuthenticated, userEmail, logout, loading } = useAuth(); // Use AuthContext
+  const { isAuthenticated, userName, logout, loading } = useAuth();
 
   const handleAuthClick = (mode: 'signin' | 'signup') => {
     setAuthMode(mode);
@@ -17,12 +17,10 @@ const ModernHeader = () => {
 
   const handleLogout = () => {
     logout();
-    // Optionally, redirect to home or refresh state
   };
 
   const handleAuthSuccess = () => {
-    setShowAuthModal(false); // Close modal on success
-    // AuthContext will handle updating isAuthenticated and userEmail
+    setShowAuthModal(false);
   };
 
   return (
@@ -31,7 +29,7 @@ const ModernHeader = () => {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             {/* Logo */}
-            <div className="flex items-center space-x-3">
+            <Link to="/" className="flex items-center space-x-3 cursor-pointer">
               <div className="relative">
                 <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-accent-500 rounded-2xl flex items-center justify-center">
                   <div className="w-6 h-6 bg-white rounded-lg flex items-center justify-center">
@@ -46,7 +44,7 @@ const ModernHeader = () => {
                 </h1>
                 <p className="text-xs text-slate-500 font-medium">AI Video Chat</p>
               </div>
-            </div>
+            </Link>
 
             {/* Auth Buttons */}
             <div className="flex items-center space-x-3">
@@ -54,7 +52,17 @@ const ModernHeader = () => {
                 <div className="text-sm text-slate-500">Loading...</div>
               ) : isAuthenticated ? (
                 <div className="flex items-center space-x-3">
-                  <span className="text-slate-700 text-sm font-medium">Welcome, {userEmail}</span>
+                  <Link to="/history">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-slate-600 hover:text-slate-800"
+                    >
+                      <History className="w-4 h-4 mr-2" />
+                      History
+                    </Button>
+                  </Link>
+                  <span className="text-slate-700 text-sm font-medium">Welcome, {userName}</span>
                   <Button
                     variant="ghost"
                     size="sm"
@@ -95,7 +103,7 @@ const ModernHeader = () => {
         isOpen={showAuthModal}
         onClose={() => setShowAuthModal(false)}
         initialMode={authMode}
-        onAuthSuccess={handleAuthSuccess} // Pass the callback
+        onAuthSuccess={handleAuthSuccess}
       />
     </>
   );

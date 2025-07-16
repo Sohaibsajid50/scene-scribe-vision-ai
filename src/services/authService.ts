@@ -10,7 +10,7 @@ interface AuthResponse {
 class AuthService {
   private tokenKey = 'access_token';
 
-  async registerUser(userData: UserCreate): Promise<User> {
+  async registerUser(userData: { first_name: string; last_name: string; email: string; password: string }): Promise<User> {
     const response = await fetch(`${BASE_URL}/auth/register`, {
       method: 'POST',
       headers: {

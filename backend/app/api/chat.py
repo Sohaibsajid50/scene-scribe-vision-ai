@@ -1,6 +1,7 @@
 import httpx
 import uuid
 import json
+import re
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile, Form
 from sqlalchemy.orm import Session
@@ -27,7 +28,7 @@ async def create_adk_session(session_id: str, current_user: str) -> bool:
                 adk_session_url,
                 headers={"Content-Type": "application/json"},
                 data=json.dumps({}),
-                timeout=60.0
+                timeout=120.0
             )
             response.raise_for_status() 
             print(f"Successfully created ADK session for user {current_user}, session {session_id}")
@@ -60,15 +61,18 @@ async def start_chat(
     
     # Combine message and context for the first turn
     first_turn_message = message
+    youtube_url_pattern = re.compile(r'(https?://(?:www\.)?(?:youtube\.com/watch\?v=|youtu\.be/)[^\s]+)')
+    url_match = youtube_url_pattern.search(message)
+
     if file:
         job_type = db_models.JobType.VIDEO
         gemini_file = await upload_to_gemini(file)
         gemini_file_id = gemini_file.name
         title = file.filename
         
-    elif "youtube.com" in message or "youtu.be" in message:
+    elif url_match:
         job_type = db_models.JobType.YOUTUBE
-        source_url = message
+        source_url = url_match.group(1)
         first_turn_message += f"\n\nYouTube URL: {source_url}"
 
     job = job_crud.create_job(
@@ -145,6 +149,7 @@ async def continue_chat(
                 f"{settings.ADK_API_URL}/run",
                 headers={"Content-Type": "application/json"},
                 data=json.dumps(request_data),
+                timeout=300.0
             )
             response.raise_for_status()
             adk_result = response.json()

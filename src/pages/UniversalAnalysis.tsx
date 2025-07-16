@@ -4,26 +4,27 @@ import { useQuery } from '@tanstack/react-query';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { ArrowUp, Loader, ArrowLeft, AlertCircle, Play, Bot } from 'lucide-react';
+import { ArrowUp, Loader, ArrowLeft, Bot } from 'lucide-react';
 import { unifiedApiService, Job, Message as ApiMessage } from '@/services/unifiedApi';
 import { toast } from 'sonner';
 import ModernHeader from '@/components/ModernHeader';
 import { useAuth } from '@/context/AuthContext';
+import VideoDisplay from '@/components/VideoDisplay'; // Import the new component
 
 interface Message extends ApiMessage {
-  id?: string; // Make optional as it might not always be present from backend initially
-  type: 'user' | 'ai'; // Derived from sender
-  timestamp: number; // Derived from created_at
+  id?: string; 
+  type: 'user' | 'ai';
+  timestamp: number;
 }
 
 interface AnalysisData {
   contentType: 'video' | 'youtube' | 'text';
-  initialResponse?: string; // Make optional as we'll fetch history
+  initialResponse?: string;
   videoUrl?: string;
   videoFile?: File;
   fileId?: string;
   originalMessage?: string;
-  conversationId?: string; // Add this to store job_id
+  conversationId?: string;
 }
 
 const UniversalAnalysis = () => {
@@ -34,16 +35,13 @@ const UniversalAnalysis = () => {
   
   const [messages, setMessages] = useState<Message[]>([]);
   const [prompt, setPrompt] = useState('');
-  const [isLoading, setIsLoading] = useState(false); // For follow-up chats
-  const [isProcessing, setIsProcessing] = useState(false); // For initial analysis/polling
+  const [isLoading, setIsLoading] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const [processingStatus, setProcessingStatus] = useState('');
-  const [embedUrl, setEmbedUrl] = useState('');
-  const [videoError, setVideoError] = useState(false);
-  const [videoObjectUrl, setVideoObjectUrl] = useState('');
+  const [displayUrl, setDisplayUrl] = useState(''); // Single URL state for the video display
   const [currentJob, setCurrentJob] = useState<Job | null>(null);
   const { isAuthenticated, loading: authLoading } = useAuth();
 
-  // Use useQuery to poll for job status and history
   const { data: jobData, error: jobError } = useQuery<Job, Error>({
     queryKey: ['jobStatusAndHistory', analysisData?.conversationId],
     queryFn: async () => {
@@ -52,17 +50,16 @@ const UniversalAnalysis = () => {
       const history = await unifiedApiService.getChatHistory(analysisData.conversationId);
       return { ...job, messages: history };
     },
-    enabled: !!analysisData?.conversationId && isAuthenticated, // Only enable if conversationId exists and authenticated
+    enabled: !!analysisData?.conversationId && isAuthenticated,
     refetchInterval: (query) => {
       const data = query.state.data;
       const currentMessagesCount = query.state.data?.messages?.length || 0;
-      const previousMessagesCount = messages.length; // Use the component's state for comparison
+      const previousMessagesCount = messages.length;
 
-      // Stop polling if job is active or in error AND the message count has increased
       if ((data?.status === 'ACTIVE' || data?.status === 'ERROR') && currentMessagesCount > previousMessagesCount) {
         return false; 
       }
-      return 2000; // Poll every 2 seconds
+      return 2000;
     },
     refetchOnWindowFocus: false,
   });
@@ -79,37 +76,37 @@ const UniversalAnalysis = () => {
       return;
     }
 
-    // Set initial processing state if a conversationId is provided (meaning a job was started)
     setIsProcessing(true);
     setProcessingStatus('Loading conversation...');
 
-    // Handle video display based on initial analysisData
+    // Set initial display URL from navigation state for immediate feedback
     if (analysisData.contentType === 'youtube' && analysisData.videoUrl) {
-      const videoId = extractVideoId(analysisData.videoUrl);
-      if (videoId) setEmbedUrl(`https://www.youtube.com/embed/${videoId}`);
-      else setVideoError(true);
+      setDisplayUrl(analysisData.videoUrl);
     } else if (analysisData.contentType === 'video' && analysisData.videoFile) {
       const objectUrl = URL.createObjectURL(analysisData.videoFile);
-      setVideoObjectUrl(objectUrl);
+      setDisplayUrl(objectUrl);
+      // Set up cleanup for the object URL
+      return () => {
+        URL.revokeObjectURL(objectUrl);
+      };
     }
-
-    return () => {
-      if (videoObjectUrl) URL.revokeObjectURL(videoObjectUrl);
-    };
   }, [analysisData, navigate, isAuthenticated, authLoading]);
 
-  // Effect to handle job status and history updates from polling
   useEffect(() => {
     if (jobData) {
       setCurrentJob(jobData);
-      // Map ApiMessage to local Message type for display
       const formattedMessages: Message[] = jobData.messages?.map((msg, index) => ({
         ...msg,
-        id: msg.id || `${msg.timestamp}-${index}`, // Use existing ID or generate a fallback
+        id: msg.id || `${msg.timestamp}-${index}`,
         type: msg.sender.toLowerCase() === 'user' ? 'user' : 'ai',
         timestamp: new Date(msg.created_at).getTime(),
       })) || [];
       setMessages(formattedMessages);
+
+      // Update the display URL from the job data, which is the source of truth from the backend
+      if (jobData.source_url && jobData.source_url !== displayUrl) {
+         setDisplayUrl(jobData.source_url);
+      }
 
       setProcessingStatus(jobData.status);
       if (jobData.status === 'ACTIVE') {
@@ -118,7 +115,7 @@ const UniversalAnalysis = () => {
       } else if (jobData.status === 'ERROR') {
         setIsProcessing(false);
         toast.error(jobData.error_message || 'An error occurred during analysis.');
-      } else { // PENDING or PROCESSING
+      } else {
         setIsProcessing(true);
       }
     }
@@ -136,31 +133,19 @@ const UniversalAnalysis = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const extractVideoId = (url: string): string | null => {
-    const patterns = [
-      /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
-      /youtube\.com\/v\/([^&\n?#]+)/,
-    ];
-    for (const pattern of patterns) {
-      const match = url.match(pattern);
-      if (match) return match[1];
-    }
-    return null;
-  };
-
   const handleSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault();
     const messageText = prompt.trim();
     if (!messageText || isLoading || isProcessing || !analysisData?.conversationId) return;
 
     const userMessage: Message = {
-      id: Date.now().toString(), // Client-side ID for immediate display
+      id: Date.now().toString(),
       type: 'user',
-      sender: 'USER', // Backend expects 'USER' or 'AI'
+      sender: 'USER',
       content: messageText,
-      created_at: new Date().toISOString(), // Use ISO string for backend
-      job_id: analysisData.conversationId, // Associate with current job
-      timestamp: Date.now() // For local sorting/display
+      created_at: new Date().toISOString(),
+      job_id: analysisData.conversationId,
+      timestamp: Date.now()
     };
 
     setMessages(prev => [...prev, userMessage]);
@@ -169,12 +154,6 @@ const UniversalAnalysis = () => {
 
     try {
       await unifiedApiService.continueChat(analysisData.conversationId, messageText);
-
-      // The response from continueChat is just a confirmation, the actual new messages
-      // will come from the polling of getChatHistory via useQuery.
-      // We can optionally add a temporary AI message here if we want immediate feedback
-      // before the poll updates, but for now, we'll rely on polling.
-
     } catch (error) {
       console.error('Failed to generate response:', error);
       toast.error('Failed to generate response. Please try again.');
@@ -202,57 +181,6 @@ const UniversalAnalysis = () => {
 
   const formatTime = (timestamp: number) => {
     return new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  };
-
-  const renderVideoPlayer = () => {
-    if (analysisData?.contentType === 'youtube') {
-        if (videoError) {
-          return (
-            <div className="h-full bg-slate-100 rounded-lg flex flex-col items-center justify-center p-6">
-              <AlertCircle className="w-12 h-12 text-red-500 mb-3" />
-              <p className="text-slate-700 font-medium mb-2">Unable to load video</p>
-              <p className="text-slate-500 text-sm text-center">The YouTube URL provided is invalid or the video may be private.</p>
-            </div>
-          );
-        } else if (embedUrl) {
-          return (
-            <div className="absolute inset-0">
-              <iframe
-                src={embedUrl}
-                title="YouTube video player"
-                frameBorder="0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-                className="w-full h-full"
-                onError={() => setVideoError(true)}
-              />
-            </div>
-          );
-        }
-      } else if (analysisData?.contentType === 'video' && videoObjectUrl) {
-        return (
-          <div className="absolute inset-0">
-            <video
-              src={videoObjectUrl}
-              controls
-              className="w-full h-full object-contain"
-              onError={() => setVideoError(true)}
-            >
-              Your browser does not support the video tag.
-            </video>
-          </div>
-        );
-      }
-  
-      return (
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="text-center">
-            <Play className="w-16 h-16 text-slate-400 mx-auto mb-4" />
-            <p className="text-slate-600 font-medium">No video content</p>
-            <p className="text-slate-500 text-sm">Continue chatting below</p>
-          </div>
-        </div>
-      );
   };
 
   if (!analysisData || !analysisData.conversationId) {
@@ -297,15 +225,22 @@ const UniversalAnalysis = () => {
                  analysisData.contentType === 'video' ? 'Video Content' : 'Text Analysis'}
               </h2>
               <div className="flex-1 min-h-0 relative pb-[56.25%] h-0 overflow-hidden rounded-lg bg-slate-100">
-                {renderVideoPlayer()}
+                {/* Replace the complex render function with the new component */}
+                {displayUrl ? (
+                  <VideoDisplay url={displayUrl} />
+                ) : (
+                  <div className="absolute inset-0 w-full h-full flex items-center justify-center">
+                     <Loader className="w-8 h-8 text-slate-400 animate-spin" />
+                  </div>
+                )}
               </div>
             </Card>
 
             <Card className="lg:col-span-2 p-4 flex flex-col h-full">
               <h2 className="text-lg font-semibold mb-3 flex-shrink-0 text-slate-800">AI Chat</h2>
               
-              <div className="flex-1 min-h-0 mb-3 overflow-hidden">
-                <div className="h-full overflow-y-auto pr-2 space-y-3">
+              <div className="flex-1 min-h-0 mb-3 relative">
+                <div className="absolute inset-0 overflow-y-auto pr-2 space-y-3">
                   {messages.map((message) => (
                     <div key={message.id} className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}>
                       <div className={`max-w-[85%] p-3 rounded-lg shadow-sm ${message.type === 'user' ? 'bg-blue-500 text-white' : 'bg-white border'}`}>

@@ -28,6 +28,8 @@ export interface UserBase {
 }
 
 export interface UserCreate extends UserBase {
+    first_name: string;
+    last_name: string;
     password: string;
 }
 
@@ -39,6 +41,8 @@ export interface UserLogin extends UserCreate {}
 
 export interface User extends UserBase {
     id: number;
+    first_name: string;
+    last_name: string;
     is_active: boolean;
 }
 

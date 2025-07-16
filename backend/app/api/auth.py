@@ -50,7 +50,7 @@ def login_for_access_token(
         raise HTTPException(status_code=400, detail="Inactive user")
         
     access_token = core.create_access_token(
-        data={"sub": user.email}
+        data={"sub": user.email, "first_name": user.first_name, "last_name": user.last_name}
     )
     return {"access_token": access_token, "token_type": "bearer"}
 
@@ -70,24 +70,28 @@ async def google_login(
         
         google_user_id = google_id_info['sub']
         email = google_id_info['email']
+        first_name = google_id_info.get('given_name', '')
+        last_name = google_id_info.get('family_name', '')
 
         user = user_crud.get_user_by_google_id(db, google_id=google_user_id)
         if not user:
             # If user doesn't exist with google_id, check by email
             user = user_crud.get_user_by_email(db, email=email)
             if user:
-                # If user exists with email but no google_id, link google_id
+                # If user exists with email but no google_id, link google_id and update names if empty
                 user = user_crud.update_user_google_id(db, user_id=user.id, google_id=google_user_id)
+                if not user.first_name:
+                    user = user_crud.update_user_name(db, user_id=user.id, first_name=first_name, last_name=last_name)
             else:
-                # Create new user with google_id
-                user_in = api_models.UserCreateGoogle(email=email, google_id=google_user_id)
+                # Create new user with google_id and names
+                user_in = api_models.UserCreateGoogle(email=email, google_id=google_user_id, first_name=first_name, last_name=last_name)
                 user = user_crud.create_user_google(db, user=user_in)
         
         if not user.is_active:
             raise HTTPException(status_code=400, detail="Inactive user")
 
         access_token = core.create_access_token(
-            data={"sub": user.email}
+            data={"sub": user.email, "first_name": user.first_name, "last_name": user.last_name}
         )
         return {"access_token": access_token, "token_type": "bearer"}
 

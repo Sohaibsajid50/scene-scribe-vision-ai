@@ -16,15 +16,8 @@ const ModernHero = ({ onGetStarted }: ModernHeroProps) => {
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-purple-500/5 rounded-full blur-2xl animate-pulse" style={{ animationDelay: '1s' }}></div>
       </div>
 
-      <div className="text-center space-y-8 py-20">
-        {/* Status Badge */}
-        <div className="inline-flex items-center space-x-2 bg-gradient-to-r from-primary-100 to-accent-100 px-6 py-3 rounded-full">
-          <div className="relative">
-            <div className="w-2 h-2 bg-accent-500 rounded-full animate-pulse"></div>
-            <div className="absolute inset-0 w-2 h-2 bg-accent-500 rounded-full animate-ping"></div>
-          </div>
-          <span className="text-sm font-medium text-primary-700">Powered by Advanced AI</span>
-        </div>
+      <div className="text-center space-y-8 py-32">
+        
 
         {/* Main Heading */}
         <div className="space-y-4">

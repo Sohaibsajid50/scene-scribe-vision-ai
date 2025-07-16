@@ -39,16 +39,22 @@ class UserBase(BaseModel):
     email: EmailStr
 
 class UserCreate(UserBase):
+    first_name: str
+    last_name: str
     password: str
 
 class UserCreateGoogle(UserBase):
     google_id: str
+    first_name: str
+    last_name: str
 
 class UserLogin(UserCreate):
     pass
 
 class User(UserBase):
     id: int
+    first_name: str
+    last_name: str
     is_active: bool
 
     class Config:

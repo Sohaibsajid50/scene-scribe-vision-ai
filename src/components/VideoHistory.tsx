@@ -1,7 +1,8 @@
 
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Play, Search, Loader2 } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'; // Import Tooltip components
+import { Play, Search, Loader2, Youtube, Video, FileText } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { unifiedApiService } from '@/services/unifiedApi';
 import { Job } from '@/models/api_models';
@@ -17,7 +18,7 @@ const VideoHistory = ({ onVideoSelect }: VideoHistoryProps) => {
   const { data: historyJobs, isLoading, isError, error } = useQuery<Job[], Error>({
     queryKey: ['userHistory'],
     queryFn: () => unifiedApiService.getHistory(),
-    enabled: isAuthenticated, // Only fetch if authenticated
+    enabled: isAuthenticated,
   });
 
   if (authLoading) {
@@ -77,25 +78,35 @@ const VideoHistory = ({ onVideoSelect }: VideoHistoryProps) => {
           historyJobs.map((job) => (
             <Card key={job.id} className="overflow-hidden hover:shadow-lg transition-all duration-300 group cursor-pointer"
                   onClick={() => onVideoSelect(job)}>
-              <div className="relative">
-                {/* Placeholder for thumbnail - replace with actual thumbnail logic if available */}
-                <img
-                  src="https://via.placeholder.com/400x225?text=Video+Thumbnail" // Placeholder
-                  alt={job.title}
-                  className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
-                />
+              <div className="relative w-full h-48 bg-slate-200 flex items-center justify-center rounded-t-lg overflow-hidden">
+                {job.job_type === 'YOUTUBE' && (
+                  <Youtube className="w-24 h-24 text-red-500" />
+                )}
+                {job.job_type === 'VIDEO' && (
+                  <Video className="w-24 h-24 text-blue-500" />
+                )}
+                {job.job_type === 'TEXT' && (
+                  <FileText className="w-24 h-24 text-gray-500" />
+                )}
                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
                   <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center">
                     <Play className="w-6 h-6 text-white ml-1" />
                   </div>
                 </div>
                 <div className="absolute bottom-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
-                  {job.status} {/* Display status instead of duration */}
+                  {job.status}
                 </div>
               </div>
               
               <div className="p-4 space-y-3">
-                <h3 className="font-semibold text-slate-800 truncate">{job.title}</h3>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <h3 className="font-semibold text-slate-800 truncate">{job.title}</h3>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{job.title}</p>
+                  </TooltipContent>
+                </Tooltip>
                 
                 <div className="flex items-center justify-between text-sm text-muted-foreground">
                   <span>{new Date(job.created_at).toLocaleDateString()}</span>

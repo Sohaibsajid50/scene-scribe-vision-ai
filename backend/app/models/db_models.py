@@ -34,6 +34,8 @@ class User(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     email = Column(String, unique=True, index=True, nullable=False)
+    first_name = Column(String, nullable=False)
+    last_name = Column(String, nullable=False)
     hashed_password = Column(String, nullable=True)  # Nullable for Google Sign-In users
     google_id = Column(String, unique=True, nullable=True)
     is_active = Column(Boolean, default=True)

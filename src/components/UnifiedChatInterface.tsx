@@ -139,8 +139,14 @@ const UnifiedChatInterface = ({ onSubmit, isLoading = false }: UnifiedChatInterf
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               placeholder="Upload a video, paste a YouTube URL, or ask me anything..."
-              className="min-h-[100px] pr-20 resize-none border-slate-200 focus:border-primary-300 focus:ring-primary-200 text-slate-800 placeholder-slate-400"
+              className="min-h-[100px] pr-20 resize-none border-slate-200 focus:border-primary-300 focus:ring-primary-200 !text-slate-800 placeholder-slate-500"
               disabled={isLoading}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSubmit(e); // Pass the event to handleSubmit
+                }
+              }}
             />
             
             {/* Action Buttons */}
@@ -180,21 +186,7 @@ const UnifiedChatInterface = ({ onSubmit, isLoading = false }: UnifiedChatInterf
             </div>
           </div>
 
-          {/* Helper Text */}
-          <div className="flex items-center justify-center space-x-6 text-sm text-slate-500">
-            <div className="flex items-center space-x-2">
-              <Upload className="w-4 h-4" />
-              <span>Upload videos</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Youtube className="w-4 h-4" />
-              <span>YouTube URLs</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Send className="w-4 h-4" />
-              <span>Text messages</span>
-            </div>
-          </div>
+          
         </form>
       </Card>
     </div>
