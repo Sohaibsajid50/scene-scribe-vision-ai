@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 import uuid
 from app.models import db_models
 
-def create_job(db: Session, user_id: int, job_type: db_models.JobType, prompt: str, title: str, gemini_file_id: str = None, source_url: str = None, current_agent: str = None) -> db_models.Job:
+def create_job(db: Session, user_id: int, job_type: db_models.JobType, prompt: str, title: str, gemini_file_id: str = None, source_url: str = None, display_video_url: str = None, current_agent: str = None) -> db_models.Job:
     """
     Creates a new job record in the database.
     """
@@ -14,6 +14,7 @@ def create_job(db: Session, user_id: int, job_type: db_models.JobType, prompt: s
         title=title,
         gemini_file_id=gemini_file_id,
         source_url=source_url,
+        display_video_url=display_video_url,
         current_agent=current_agent
     )
     db.add(db_job)

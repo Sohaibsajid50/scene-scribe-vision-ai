@@ -25,5 +25,10 @@ class Settings:
     ADK_API_URL: str = os.getenv("ADK_API_URL", "http://localhost:8000")
     APP_NAME: str = "planner"
 
+    # AWS S3
+    AWS_ACCESS_KEY_ID: str = os.getenv("AWS_ACCESS_KEY_ID", "")
+    AWS_SECRET_ACCESS_KEY: str = os.getenv("AWS_SECRET_ACCESS_KEY", "")
+    AWS_S3_BUCKET_NAME: str = os.getenv("AWS_S3_BUCKET_NAME", "")
+
 
 settings = Settings()

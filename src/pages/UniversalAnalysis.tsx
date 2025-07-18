@@ -104,8 +104,8 @@ const UniversalAnalysis = () => {
       setMessages(formattedMessages);
 
       // Update the display URL from the job data, which is the source of truth from the backend
-      if (jobData.source_url && jobData.source_url !== displayUrl) {
-         setDisplayUrl(jobData.source_url);
+      if (jobData.display_video_url && jobData.display_video_url !== displayUrl) {
+         setDisplayUrl(jobData.display_video_url);
       }
 
       setProcessingStatus(jobData.status);
@@ -218,8 +218,8 @@ const UniversalAnalysis = () => {
             </Button>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 h-[calc(100vh-200px)]">
-            <Card className="lg:col-span-3 p-4 flex flex-col">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 h-[calc(100vh-100px)]">
+            <Card className="lg:col-span-1 p-4 flex flex-col">
               <h2 className="text-lg font-semibold text-slate-800 mb-3">
                 {analysisData.contentType === 'youtube' ? 'YouTube Video' : 
                  analysisData.contentType === 'video' ? 'Video Content' : 'Text Analysis'}
@@ -227,7 +227,7 @@ const UniversalAnalysis = () => {
               <div className="flex-1 min-h-0 relative pb-[56.25%] h-0 overflow-hidden rounded-lg bg-slate-100">
                 {/* Replace the complex render function with the new component */}
                 {displayUrl ? (
-                  <VideoDisplay url={displayUrl} />
+                  <VideoDisplay videoUrl={displayUrl} />
                 ) : (
                   <div className="absolute inset-0 w-full h-full flex items-center justify-center">
                      <Loader className="w-8 h-8 text-slate-400 animate-spin" />
@@ -236,7 +236,7 @@ const UniversalAnalysis = () => {
               </div>
             </Card>
 
-            <Card className="lg:col-span-2 p-4 flex flex-col h-full">
+            <Card className="lg:col-span-1 p-4 flex flex-col h-full">
               <h2 className="text-lg font-semibold mb-3 flex-shrink-0 text-slate-800">AI Chat</h2>
               
               <div className="flex-1 min-h-0 mb-3 relative">

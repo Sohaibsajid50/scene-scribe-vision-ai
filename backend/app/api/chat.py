@@ -11,7 +11,7 @@ from app.crud import job_crud
 from app.services.history_service import history_service
 from app.agents.adk_agent import upload_to_gemini
 from app.core.config import settings
-# from langchain_core.messages import HumanMessage
+from app.services.s3_service import s3_service # New import
 
 router = APIRouter(prefix="/api/chat", tags=["Chat"])
 
@@ -57,6 +57,7 @@ async def start_chat(
     job_type = db_models.JobType.TEXT
     gemini_file_id = None
     source_url = None
+    display_video_url = None # New variable
     title = message[:50]
     
     # Combine message and context for the first turn
@@ -66,6 +67,18 @@ async def start_chat(
 
     if file:
         job_type = db_models.JobType.VIDEO
+        # Read file content for S3 upload
+        file_content = await file.read()
+        file_extension = file.filename.split(".")[-1]
+        unique_filename = f"{uuid.uuid4()}.{file_extension}"
+        
+        # Upload to S3
+        display_video_url = await s3_service.upload_file(file_content, unique_filename, file.content_type)
+
+        # Rewind file pointer for Gemini upload
+        await file.seek(0)
+
+        # Upload to Gemini (if needed)
         gemini_file = await upload_to_gemini(file)
         gemini_file_id = gemini_file.name
         title = file.filename
@@ -73,11 +86,13 @@ async def start_chat(
     elif url_match:
         job_type = db_models.JobType.YOUTUBE
         source_url = url_match.group(1)
+        display_video_url = source_url # Store YouTube URL for display
         first_turn_message += f"\n\nYouTube URL: {source_url}"
 
     job = job_crud.create_job(
         db=db, user_id=current_user.id, job_type=job_type, prompt=message,
         title=title, gemini_file_id=gemini_file_id, source_url=source_url,
+        display_video_url=display_video_url, # Pass the new URL
         current_agent="ADK"
     )
     session_id = str(job.id)
@@ -164,7 +179,7 @@ async def continue_chat(
         history_service.add_message_to_history(db, session_id, "ASSISTANT", assistant_message)
         job_crud.update_job_status(db, job_id=job_id, user_id=current_user.id, status=db_models.JobStatus.ACTIVE)
 
-        return {"response": assistant_message, "conversation_id": session_id}
+        return {"response": assistant_message, "conversation_id": session_id, "display_video_url": job.display_video_url}
 
     except httpx.RequestError as e:
         job_crud.update_job_status(db, job_id=job_id, user_id=current_user.id, status=db_models.JobStatus.ERROR, error_message=f"ADK service unavailable: {e}")

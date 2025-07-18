@@ -1,50 +1,49 @@
-
 import React from 'react';
 
 interface VideoDisplayProps {
-  url: string;
+  videoUrl: string | null;
 }
 
-const VideoDisplay: React.FC<VideoDisplayProps> = ({ url }) => {
-  const isYouTubeUrl = (url: string) => {
-    return url.includes('youtube.com') || url.includes('youtu.be');
-  };
+const VideoDisplay: React.FC<VideoDisplayProps> = ({ videoUrl }) => {
+  if (!videoUrl) {
+    return null;
+  }
 
-  const getYouTubeEmbedUrl = (url: string) => {
-    let videoId;
-    if (url.includes('youtube.com/watch')) {
-      videoId = new URL(url).searchParams.get('v');
-    } else if (url.includes('youtu.be')) {
-      videoId = new URL(url).pathname.slice(1);
-    }
-    return videoId ? `https://www.youtube.com/embed/${videoId}` : null;
-  };
+  // Check if it's a YouTube URL
+  const isYouTube = videoUrl.includes('youtube.com') || videoUrl.includes('youtu.be');
 
-  if (isYouTubeUrl(url)) {
-    const embedUrl = getYouTubeEmbedUrl(url);
-    if (!embedUrl) {
-      return <p>Invalid YouTube URL</p>;
+  if (isYouTube) {
+    // Extract YouTube video ID
+    const youtubeIdMatch = videoUrl.match(/(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+    const youtubeId = youtubeIdMatch ? youtubeIdMatch[1] : null;
+
+    if (youtubeId) {
+      return (
+        <div>
+          <iframe
+            src={`https://www.youtube.com/embed/${youtubeId}`}
+            frameBorder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+            title="Embedded YouTube Video"
+            style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
+          ></iframe>
+        </div>
+      );
     }
+  } else {
+    // Assume it's a direct video URL (e.g., S3)
     return (
-      <div className="absolute inset-0 w-full h-full">
-        <iframe
-          src={embedUrl}
-          title="YouTube video player"
-          frameBorder="0"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          allowFullScreen
-          className="w-full h-full"
-        ></iframe>
+      <div>
+        <video controls style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}>
+          <source src={videoUrl} type="video/mp4" /> {/* Assuming MP4 for now */}
+          Your browser does not support the video tag.
+        </video>
       </div>
     );
   }
 
-  return (
-    <video controls className="absolute inset-0 w-full h-full object-contain">
-      <source src={url} type="video/mp4" />
-      Your browser does not support the video tag.
-    </video>
-  );
+  return null;
 };
 
 export default VideoDisplay;

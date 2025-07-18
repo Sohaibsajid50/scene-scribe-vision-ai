@@ -59,6 +59,7 @@ class Job(Base):
     
     gemini_file_id = Column(String, nullable=True)
     source_url = Column(String, nullable=True)
+    display_video_url = Column(String, nullable=True)
     
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

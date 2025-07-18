@@ -7,6 +7,7 @@ import { useQuery } from '@tanstack/react-query';
 import { unifiedApiService } from '@/services/unifiedApi';
 import { Job } from '@/models/api_models';
 import { useAuth } from '@/context/AuthContext';
+import VideoDisplay from '@/components/VideoDisplay'; // Import VideoDisplay
 
 interface VideoHistoryProps {
   onVideoSelect: (job: Job) => void;
@@ -79,14 +80,20 @@ const VideoHistory = ({ onVideoSelect }: VideoHistoryProps) => {
             <Card key={job.id} className="overflow-hidden hover:shadow-lg transition-all duration-300 group cursor-pointer"
                   onClick={() => onVideoSelect(job)}>
               <div className="relative w-full h-48 bg-slate-200 flex items-center justify-center rounded-t-lg overflow-hidden">
-                {job.job_type === 'YOUTUBE' && (
-                  <Youtube className="w-24 h-24 text-red-500" />
-                )}
-                {job.job_type === 'VIDEO' && (
-                  <Video className="w-24 h-24 text-blue-500" />
-                )}
-                {job.job_type === 'TEXT' && (
-                  <FileText className="w-24 h-24 text-gray-500" />
+                {job.display_video_url ? (
+                  <VideoDisplay videoUrl={job.display_video_url} />
+                ) : (
+                  <div className="absolute inset-0 w-full h-full flex items-center justify-center">
+                    {job.job_type === 'YOUTUBE' && (
+                      <Youtube className="w-24 h-24 text-red-500" />
+                    )}
+                    {job.job_type === 'VIDEO' && (
+                      <Video className="w-24 h-24 text-blue-500" />
+                    )}
+                    {job.job_type === 'TEXT' && (
+                      <FileText className="w-24 h-24 text-gray-500" />
+                    )}
+                  </div>
                 )}
                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
                   <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center">

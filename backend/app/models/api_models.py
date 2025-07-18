@@ -82,6 +82,7 @@ class ChatRequest(BaseModel):
 class ChatResponse(BaseModel):
     response: str
     conversation_id: uuid.UUID
+    display_video_url: Optional[str] = None
 
 class GoogleIdTokenRequest(BaseModel):
     id_token_str: str
@@ -100,6 +101,7 @@ class Job(BaseModel):
     current_agent: str
     gemini_file_id: Optional[str] = None
     source_url: Optional[str] = None
+    display_video_url: Optional[str] = None
     created_at: datetime
     updated_at: datetime
 
