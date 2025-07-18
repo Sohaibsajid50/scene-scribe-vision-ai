@@ -11,45 +11,30 @@ class HistoryService:
     def __init__(self, client):
         self.client = client
 
-    def add_message_to_history(self, conversation_id: str, sender: str, message: str):
+    def add_message_to_history(self, db: Session, conversation_id: str, sender: str, message: str):
         """
-        Appends a new message to the conversation history in Redis.
+        Appends a new message to the conversation history in Redis and persists it to the database.
         """
+        # Add to Redis
         key = f"chat_history:{conversation_id}"
-        new_message = {
+        new_message_redis = {
             "id": str(uuid.uuid4()),
             "job_id": conversation_id,
             "sender": sender,
             "content": message,
             "created_at": datetime.utcnow().isoformat()
         }
-        self.client.rpush(key, json.dumps(new_message))
+        self.client.rpush(key, json.dumps(new_message_redis))
 
-    def get_history(self, conversation_id: str) -> List[Dict[str, str]]:
-        """Retrieves the current chat history for a job from Redis."""
-        return self.client.get_history(conversation_id)
-
-    def persist_chat_history(self, db: Session, job_id: uuid.UUID, user_id: int):
-        """
-        Moves the chat history from Redis to the PostgreSQL database.
-        """
-        conversation_id = str(job_id)
-        history = self.get_history(conversation_id)
-        
-        job = job_crud.get_job(db, job_id=job_id, user_id=user_id)
-        if not job:
-            return
-
-        for msg in history:
-            db_message = db_models.ChatMessage(
-                job_id=job.id,
-                sender=msg["sender"],
-                content=msg["content"]
-            )
-            db.add(db_message)
-        
+        # Persist to PostgreSQL
+        db_message = db_models.ChatMessage(
+            job_id=uuid.UUID(conversation_id),
+            sender=sender,
+            content=message,
+            created_at=datetime.utcnow()
+        )
+        db.add(db_message)
         db.commit()
-        
-        self.client.delete_history(conversation_id)
+        db.refresh(db_message)
 
 history_service = HistoryService(redis_client)

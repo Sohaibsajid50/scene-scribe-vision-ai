@@ -17,9 +17,4 @@ class RedisClient:
         key = f"chat_history:{conversation_id}"
         return self.lrange(key, 0, -1)
 
-    def delete_history(self, conversation_id: str):
-        """Deletes the chat history for a given job from Redis."""
-        key = f"chat_history:{conversation_id}"
-        self.client.delete(key)
-
 redis_client = RedisClient()

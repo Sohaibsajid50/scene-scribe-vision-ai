@@ -9,9 +9,10 @@ app = FastAPI(
 
 # Configure CORS
 origins = [
-    "http://localhost:5173",  # Default Vite dev server port
-    "http://localhost:3000",  # Common React dev server port
-    "http://localhost:8080",
+    # "http://localhost:5173",  # Default Vite dev server port
+    # "http://localhost:3000",  # Common React dev server port
+    # "http://localhost:8080",
+    "https://scenespeak.app",
     # Add your production frontend URL here when you have one
 ]
 

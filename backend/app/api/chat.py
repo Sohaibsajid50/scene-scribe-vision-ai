@@ -160,8 +160,8 @@ async def continue_chat(
             if event.get("content", {}).get("role") == "model" and "text" in event.get("content", {}).get("parts", [{}])[0]:
                 assistant_message = event["content"]["parts"][0]["text"]
 
-        history_service.add_message_to_history(session_id, "USER", message)
-        history_service.add_message_to_history(session_id, "ASSISTANT", assistant_message)
+        history_service.add_message_to_history(db, session_id, "USER", message)
+        history_service.add_message_to_history(db, session_id, "ASSISTANT", assistant_message)
         job_crud.update_job_status(db, job_id=job_id, user_id=current_user.id, status=db_models.JobStatus.ACTIVE)
 
         return {"response": assistant_message, "conversation_id": session_id}
@@ -193,17 +193,10 @@ def get_chat_history(
     if not job:
         raise HTTPException(status_code=404, detail="Conversation not found")
         
-    # Try fetching from Redis first
-    redis_history_raw = history_service.get_history(str(job_id))
-    if redis_history_raw:
-        return [api_models.Message.model_validate(json.loads(msg)) for msg in redis_history_raw]
-
-    # If not in Redis, fetch from DB
     if job.messages:
         return job.messages
 
-    # If no history in Redis or DB, return empty list.
-    # This handles the case where the job is created but the first turn is not yet complete.
+    # If no history in DB, return empty list.
     return []
 
 @router.get("/job/{job_id}", response_model=api_models.Job)
