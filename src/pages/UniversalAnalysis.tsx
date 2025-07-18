@@ -95,12 +95,15 @@ const UniversalAnalysis = () => {
   useEffect(() => {
     if (jobData) {
       setCurrentJob(jobData);
-      const formattedMessages: Message[] = jobData.messages?.map((msg, index) => ({
-        ...msg,
-        id: msg.id || `${msg.timestamp}-${index}`,
-        type: msg.sender.toLowerCase() === 'user' ? 'user' : 'ai',
-        timestamp: new Date(msg.created_at).getTime(),
-      })) || [];
+      const formattedMessages: Message[] = (jobData.messages || [])
+        .map((msg, index) => ({
+          ...msg,
+          id: msg.id || `${new Date(msg.created_at).getTime()}-${index}`,
+          type: msg.sender.toLowerCase() === 'user' ? 'user' : 'ai',
+          timestamp: new Date(msg.created_at).getTime(),
+        }))
+        .sort((a, b) => a.timestamp - b.timestamp); // Sort messages chronologically
+
       setMessages(formattedMessages);
 
       // Update the display URL from the job data, which is the source of truth from the backend

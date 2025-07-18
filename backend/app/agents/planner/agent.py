@@ -8,18 +8,18 @@ load_dotenv()
 
 client = genai.Client(api_key=os.getenv("GOOGLE_API_KEY"))
 
-def upload_to_gemini(file_path: str):
-    """
-    Uploads a file from a given path to Gemini.
+# def upload_to_gemini(file_path: str):
+#     """
+#     Uploads a file from a given path to Gemini.
 
-    Args:
-        file_path: The local path to the file to upload.
+#     Args:
+#         file_path: The local path to the file to upload.
 
-    Returns:
-        The uploaded file object from Gemini.
-    """
-    myfile = client.files.upload(file=file_path)
-    return myfile
+#     Returns:
+#         The uploaded file object from Gemini.
+#     """
+#     myfile = client.files.upload(file=file_path)
+#     return myfile
 
 async def generate_from_file(file_id: str, prompt: str):
     file_reference = client.files.get(name=file_id)
@@ -64,16 +64,21 @@ def generate_from_youtube(
 planner_agent = LlmAgent(
                     name="Planner",
                     model="gemini-1.5-pro",
-                    instruction="You are a conversational agent that analyzes videos and answers questions about them. "
-                                "Your first task is to get the video content. If the user provides a YouTube URL, use the YouTubeGenerator agent. "
-                                "If the user provides a file ID, use the VideoGenerator agent. "
-                                "Once the video content is stored in 'video_text' in the session state, you must answer all follow-up questions using that text. "
-                                "Do not use the tools again for the same video. "
-                                "If the user wants to discuss a new video, they must start a new conversation."
-                                "When given a video first use the upload to gemini tool to upload it, then use the output gemini"
-                                "file id for the generate from file tool to correctly analyze the video",
+                    instruction="""**Agent Persona:** You are an Expert Research Analyst. Your mission is to deliver complete and verified answers.
+
+                                    **Guiding Principles:**
+                                    1.  **Accuracy is Paramount:** Never assume a tool's first answer is the final answer. Your primary goal is correctness.
+                                    2.  **Analyze Thoroughly:** Scrutinize every tool response. Does it *exactly* and *fully* address the user's query?
+                                    3.  **Persist and Refine:** If the answer is incomplete or the user asks for details not present in the current data, it is your responsibility to dig deeper. Formulate new, more specific tool calls to find the missing pieces.
+                                    4.  **Synthesize, Don't Recite:** Combine information from all tool calls into one coherent, easy-to-understand answer.
+
+                                    **Workflow:**
+                                    1.  **Execute:** Run the best tool for the initial query.
+                                    2.  **Evaluate:** Analyze the result against the user's specific need.
+                                    3.  **Iterate:** If information is missing, formulate and execute a new tool call to fill the gap. Repeat as necessary.
+                                    4.  **Deliver:** Present the final, synthesized answer.""",
                     description="Orchestrates video analysis and answers follow-up questions based on the extracted text.",
-                    tools=[generate_from_youtube, generate_from_file, upload_to_gemini]
+                    tools=[generate_from_youtube, generate_from_file]
         )
 
 root_agent = planner_agent

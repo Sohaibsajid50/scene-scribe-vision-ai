@@ -87,7 +87,6 @@ async def start_chat(
         job_type = db_models.JobType.YOUTUBE
         source_url = url_match.group(1)
         display_video_url = source_url # Store YouTube URL for display
-        first_turn_message += f"\n\nYouTube URL: {source_url}"
 
     job = job_crud.create_job(
         db=db, user_id=current_user.id, job_type=job_type, prompt=message,
@@ -116,8 +115,6 @@ async def start_chat(
         db=db,
         current_user=current_user,
         message=first_turn_message,  # Pass the combined message
-        gemini_file_id=gemini_file_id,
-        source_url=source_url
     )
     
     # After continue_chat, the status should be updated by continue_chat itself.
@@ -132,8 +129,6 @@ async def continue_chat(
     db: Session = Depends(dependencies.get_db),
     current_user: db_models.User = Depends(dependencies.get_current_user),
     message: str = Form(...),
-    gemini_file_id: Optional[str] = Form(None),
-    source_url: Optional[str] = Form(None),
 ):
     """
 
@@ -155,7 +150,7 @@ async def continue_chat(
                 "new_message":{
                     "role": "user",
                     "parts": [
-                        {"text": message + (f"\n\nGemini File ID: {gemini_file_id}" if gemini_file_id else "") + (f"\n\nYouTube URL: {source_url}" if source_url else "")}
+                        {"text": message + (f"\n\nGemini File ID: {job.gemini_file_id}" if job.gemini_file_id else "") + (f"\n\nYouTube URL: {job.source_url}" if job.source_url else "")}
                     ]
                 }
             }
