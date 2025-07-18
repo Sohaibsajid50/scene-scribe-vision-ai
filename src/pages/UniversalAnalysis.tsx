@@ -18,12 +18,11 @@ interface Message extends ApiMessage {
 }
 
 interface AnalysisData {
-  contentType: 'video' | 'youtube' | 'text';
+  contentType: 'video' | 'youtube';
   initialResponse?: string;
   videoUrl?: string;
   videoFile?: File;
   fileId?: string;
-  originalMessage?: string;
   conversationId?: string;
 }
 
@@ -90,7 +89,7 @@ const UniversalAnalysis = () => {
         URL.revokeObjectURL(objectUrl);
       };
     }
-  }, [analysisData, navigate, isAuthenticated, authLoading]);
+  }, [analysisData, navigate, isAuthenticated, authLoading, displayUrl]);
 
   useEffect(() => {
     if (jobData) {

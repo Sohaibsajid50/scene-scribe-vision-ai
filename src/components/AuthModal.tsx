@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Mail, Lock, Eye, EyeOff, User } from 'lucide-react';
-import { GoogleLogin } from '@react-oauth/google';
+import { GoogleLogin, CredentialResponse } from '@react-oauth/google';
 import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
 
@@ -65,14 +65,14 @@ const AuthModal = ({ isOpen, onClose, initialMode = 'signin', onAuthSuccess }: A
         if (onAuthSuccess) onAuthSuccess();
         onClose();
       }
-    } catch (error: any) {
-      toast.error(error.message || 'Authentication failed.');
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : 'Authentication failed.');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleGoogleSuccess = async (tokenResponse: any) => {
+  const handleGoogleSuccess = async (tokenResponse: CredentialResponse) => {
     if (tokenResponse.credential) {
       setIsLoading(true);
       try {
@@ -80,8 +80,8 @@ const AuthModal = ({ isOpen, onClose, initialMode = 'signin', onAuthSuccess }: A
         toast.success('Signed in with Google successfully!');
         if (onAuthSuccess) onAuthSuccess();
         onClose();
-      } catch (error: any) {
-        toast.error(error.message || 'Google sign-in failed.');
+      } catch (error: unknown) {
+        toast.error(error instanceof Error ? error.message : 'Google sign-in failed.');
       } finally {
         setIsLoading(false);
       }

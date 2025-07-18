@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import ModernHeader from '@/components/ModernHeader';
 import ModernHero from '@/components/ModernHero';
-import UnifiedChatInterface from '@/components/UnifiedChatInterface';
+import VideoInput from '@/components/VideoInput';
 import { unifiedApiService } from '@/services/unifiedApi';
 import { useAuth } from '@/context/AuthContext';
 import AuthModal from '@/components/AuthModal'; // Import AuthModal
@@ -32,8 +32,8 @@ const Index = () => {
   };
 
   const handleChatSubmit = async (data: {
-    type: 'text' | 'video' | 'youtube';
-    content: string;
+    type: 'video' | 'youtube';
+    content: string; // This will be the YouTube URL or a placeholder for video file
     file?: File;
   }) => {
     if (!isAuthenticated) {
@@ -46,20 +46,18 @@ const Index = () => {
     
     try {
       const response = await unifiedApiService.sendMessage({
-        message: data.content,
+        message: data.type === 'youtube' ? data.content : `Analyze video: ${data.content}`,
         file: data.file,
       });
 
       // Determine content type for the analysis page
-      let contentType: 'video' | 'youtube' | 'text' = 'text';
+      const contentType: 'video' | 'youtube' = data.type;
       let videoUrl: string | undefined;
       let videoFile: File | undefined;
 
-      if (data.file) {
-        contentType = 'video';
+      if (data.type === 'video') {
         videoFile = data.file;
-      } else if (data.content.includes('youtube.com') || data.content.includes('youtu.be')) {
-        contentType = 'youtube';
+      } else if (data.type === 'youtube') {
         const youtubeUrlMatch = data.content.match(
           /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#\s]+)/
         );
@@ -78,7 +76,7 @@ const Index = () => {
             videoUrl,
             videoFile,
             fileId: response.file_id, // Pass the file_id
-            originalMessage: data.content,
+            
             conversationId: response.conversation_id, // Pass the conversation_id
           },
         },
@@ -123,36 +121,12 @@ const Index = () => {
               </p>
             </div>
             
-            <UnifiedChatInterface 
+            <VideoInput 
               onSubmit={handleChatSubmit}
               isLoading={isLoading}
-              disabled={authLoading || !isAuthenticated} // Disable if not authenticated or loading
             />
             
-            {/* Quick Examples */}
-            <div className="mt-12 text-center">
-              <h3 className="text-xl font-semibold text-slate-800 mb-6">Try these examples:</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-4xl mx-auto">
-                <div className="p-4 bg-white rounded-xl border border-slate-200 hover:border-primary-300 transition-colors">
-                  <h4 className="font-medium text-slate-800 mb-2">Upload a Video</h4>
-                  <p className="text-sm text-slate-600">
-                    "Summarize the key points from this presentation"
-                  </p>
-                </div>
-                <div className="p-4 bg-white rounded-xl border border-slate-200 hover:border-primary-300 transition-colors">
-                  <h4 className="font-medium text-slate-800 mb-2">YouTube Analysis</h4>
-                  <p className="text-sm text-slate-600">
-                    "https://youtube.com/watch?v=... What's the main topic?"
-                  </p>
-                </div>
-                <div className="p-4 bg-white rounded-xl border border-slate-200 hover:border-primary-300 transition-colors">
-                  <h4 className="font-medium text-slate-800 mb-2">Ask Questions</h4>
-                  <p className="text-sm text-slate-600">
-                    "How can I improve my video content?"
-                  </p>
-                </div>
-              </div>
-            </div>
+            
           </div>
         )}
       </main>

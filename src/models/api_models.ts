@@ -37,7 +37,7 @@ export interface UserCreateGoogle extends UserBase {
     google_id: string;
 }
 
-export interface UserLogin extends UserCreate {}
+
 
 export interface User extends UserBase {
     id: number;
