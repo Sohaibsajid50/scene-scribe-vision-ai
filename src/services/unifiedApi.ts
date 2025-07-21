@@ -16,7 +16,7 @@ class UnifiedAPIService {
   private baseURL: string;
   private tokenKey = 'access_token';
 
-  constructor(baseURL: string = 'http://localhost:8050') {
+  constructor(baseURL: string = '') {
     this.baseURL = baseURL;
   }
 

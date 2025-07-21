@@ -1,6 +1,6 @@
 import { UserCreate, UserLogin, Token, User } from '@/models/api_models';
 
-const BASE_URL = 'http://localhost:8050';
+const BASE_URL = '';
 
 interface AuthResponse {
   access_token: string;
@@ -11,7 +11,7 @@ class AuthService {
   private tokenKey = 'access_token';
 
   async registerUser(userData: { first_name: string; last_name: string; email: string; password: string }): Promise<User> {
-    const response = await fetch(`${BASE_URL}/auth/register`, {
+    const response = await fetch(`${BASE_URL}/api/auth/register`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -32,7 +32,7 @@ class AuthService {
     formData.append('username', credentials.email);
     formData.append('password', credentials.password);
 
-    const response = await fetch(`${BASE_URL}/auth/login`, {
+    const response = await fetch(`${BASE_URL}/api/auth/login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
@@ -51,7 +51,7 @@ class AuthService {
   }
 
   async googleLogin(idToken: string): Promise<Token> {
-    const response = await fetch(`${BASE_URL}/auth/google-login`, {
+    const response = await fetch(`${BASE_URL}/api/auth/google-login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
