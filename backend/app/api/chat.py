@@ -8,8 +8,8 @@ from sqlalchemy.orm import Session
 from app.api import dependencies
 from app.models import db_models, api_models
 from app.crud import job_crud
+from app.agents.planner.agent import upload_to_gemini
 from app.services.history_service import history_service
-from app.agents.adk_agent import upload_to_gemini
 from app.core.config import settings
 from app.services.s3_service import s3_service # New import
 
@@ -41,6 +41,11 @@ async def create_adk_session(session_id: str, current_user: str) -> bool:
         return False
 
 
+import tempfile
+import os
+
+# ... (keep existing imports)
+
 @router.post("/start", response_model=api_models.ChatResponse)
 async def start_chat(
     db: Session = Depends(dependencies.get_db),
@@ -67,22 +72,26 @@ async def start_chat(
 
     if file:
         job_type = db_models.JobType.VIDEO
-        # Read file content for S3 upload
-        file_content = await file.read()
-        file_extension = file.filename.split(".")[-1]
-        unique_filename = f"{uuid.uuid4()}.{file_extension}"
         
-        # Upload to S3
-        display_video_url = await s3_service.upload_file(file_content, unique_filename, file.content_type)
+        # Stream the file to a temporary location to avoid memory issues
+        with tempfile.NamedTemporaryFile(delete=False, suffix=file.filename) as temp_file:
+            while chunk := await file.read(1024*1024): # Read in 1MB chunks
+                temp_file.write(chunk)
+            temp_file_path = temp_file.name
 
-        # Rewind file pointer for Gemini upload
-        await file.seek(0)
+        try:
+            # Upload to S3 for display
+            with open(temp_file_path, "rb") as f:
+                display_video_url = await s3_service.upload_file(f, os.path.basename(temp_file_path), file.content_type)
 
-        # Upload to Gemini (if needed)
-        gemini_file = await upload_to_gemini(file)
-        gemini_file_id = gemini_file.name
-        title = file.filename
-        
+            # Upload to Gemini for analysis
+            gemini_file = await upload_to_gemini(temp_file_path)
+            gemini_file_id = gemini_file.name
+            title = file.filename
+        finally:
+            # Clean up the temporary file
+            os.remove(temp_file_path)
+            
     elif url_match:
         job_type = db_models.JobType.YOUTUBE
         source_url = url_match.group(1)

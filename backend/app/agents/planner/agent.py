@@ -3,23 +3,31 @@ from google import genai
 import os
 from google.adk.agents import Agent, LlmAgent
 from google.genai import types
+import time
+import re
+import tempfile
+import os
+from fastapi import UploadFile
 
 load_dotenv()
 
 client = genai.Client(api_key=os.getenv("GOOGLE_API_KEY"))
 
-# def upload_to_gemini(file_path: str):
-#     """
-#     Uploads a file from a given path to Gemini.
+async def upload_to_gemini(file_path: str):
+    """Uploads a file to Gemini and returns the file object."""
+    print(f"Uploading file: {file_path}")
+    myfile = client.files.upload(file=file_path)
+    print(f"File uploaded: {myfile.name}, state: {myfile.state}")
 
-#     Args:
-#         file_path: The local path to the file to upload.
+    while myfile.state != "ACTIVE":
+        print(f"Waiting for file to become active. Current state: {myfile.state}")
+        time.sleep(2)
+        myfile = client.files.get(name=myfile.name)
+        if myfile.state == "FAILED":
+            raise Exception(f"Gemini file processing failed: {myfile.error}")
 
-#     Returns:
-#         The uploaded file object from Gemini.
-#     """
-#     myfile = client.files.upload(file=file_path)
-#     return myfile
+    print(f"File is active: {myfile.name}")
+    return myfile
 
 async def generate_from_file(file_id: str, prompt: str):
     file_reference = client.files.get(name=file_id)
